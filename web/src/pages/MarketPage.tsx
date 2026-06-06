@@ -79,6 +79,7 @@ function apiBaseUrl() {
   const envUrl = import.meta.env.VITE_API_BASE_URL as string | undefined
   if (envUrl?.trim()) return envUrl.trim().replace(/\/$/, "")
   if (import.meta.env.DEV) return "http://localhost:3001/api"
+  // Fallback to /api if no env var is set
   return "/api"
 }
 
