@@ -29,11 +29,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
 
     res.status(200).json({ 
-      success: true, 
+      code: 200,
+      msg: "success",
       data: result 
     })
   } catch (error: any) {
     console.error('[Token Detail Error]', error)
-    res.status(500).json({ success: false, error: error.message || 'Internal server error' })
+    res.status(500).json({ 
+      code: 500,
+      msg: error.message || 'Internal server error',
+      data: {}
+    })
   }
 }
