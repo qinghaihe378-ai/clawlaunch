@@ -1,16 +1,21 @@
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import fs from "node:fs"
 
 import dotenv from "dotenv"
 import { createPublicClient, http, type Address, type PublicClient } from "viem"
 import { bsc, bscTestnet } from "viem/chains"
 
-import bscDeployment from "../../contracts/deployments/bsc.json" with { type: "json" }
-import bscTestnetDeployment from "../../contracts/deployments/bscTestnet.json" with { type: "json" }
-
 const currentDir = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.resolve(currentDir, "../../.env") })
 dotenv.config({ path: path.resolve(currentDir, "../.env"), override: false })
+
+// Load deployment files manually to avoid import assertion issues
+const bscDeploymentPath = path.resolve(currentDir, "../../contracts/deployments/bsc.json")
+const bscTestnetDeploymentPath = path.resolve(currentDir, "../../contracts/deployments/bscTestnet.json")
+
+const bscDeployment = JSON.parse(fs.readFileSync(bscDeploymentPath, "utf-8"))
+const bscTestnetDeployment = JSON.parse(fs.readFileSync(bscTestnetDeploymentPath, "utf-8"))
 
 export type SupportedChainId = 56 | 97
 export type FactoryVersion = "v1"
