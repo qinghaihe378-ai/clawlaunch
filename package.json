@@ -8,9 +8,13 @@
   ],
   "scripts": {
     "build": "npm -w contracts run build && npm -w web run build && npm -w server run build",
+    "build:vercel": "npm -w web run build",
     "dev:server": "npm -w server run dev",
     "test": "npm -w contracts test",
     "lint": "npm -w web run lint",
     "format": "npm -w web run format"
+  },
+  "devDependencies": {
+    "@vercel/node": "^5.8.12"
   }
 }
