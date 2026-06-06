@@ -30,6 +30,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     })
   } catch (error: any) {
     console.error('[List Tokens Error]', error)
-    res.status(500).json({ success: false, error: error.message || 'Internal server error' })
+    console.error('[List Tokens Error Stack]', error.stack)
+    res.status(500).json({ 
+      success: false, 
+      error: error.message || 'Internal server error',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    })
   }
 }
