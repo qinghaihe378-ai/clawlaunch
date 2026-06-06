@@ -86,12 +86,17 @@ function apiBaseUrl() {
 // Helper function to safely construct API URLs
 function buildApiUrl(path: string) {
   const base = apiBaseUrl()
-  // Ensure base URL is valid
-  if (!base || !base.startsWith('http') && !base.startsWith('/')) {
-    console.warn('[API] Invalid base URL, using fallback:', base)
-    return `/api${path}`
+  // If base is a relative path (starts with /), use window.location.origin
+  if (base.startsWith('/')) {
+    return `${window.location.origin}${base}${path}`
   }
-  return `${base}${path}`
+  // If base is an absolute URL
+  if (base.startsWith('http')) {
+    return `${base}${path}`
+  }
+  // Fallback
+  console.warn('[API] Invalid base URL, using fallback:', base)
+  return `${window.location.origin}/api${path}`
 }
 
 function parseBigInt(value: string | number | bigint | undefined): bigint {
