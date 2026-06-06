@@ -385,7 +385,6 @@ export default function MarketPage() {
             </button>
           </div>
         </div>
-        </div>
 
         {!isSupportedChain && (
           <div className="glass-card rounded-2xl border-red-500/30 bg-red-500/10 p-5 text-sm text-red-300">
