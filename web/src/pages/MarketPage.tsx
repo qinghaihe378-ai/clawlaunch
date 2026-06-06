@@ -83,6 +83,17 @@ function apiBaseUrl() {
   return "/api"
 }
 
+// Helper function to safely construct API URLs
+function buildApiUrl(path: string) {
+  const base = apiBaseUrl()
+  // Ensure base URL is valid
+  if (!base || !base.startsWith('http') && !base.startsWith('/')) {
+    console.warn('[API] Invalid base URL, using fallback:', base)
+    return `/api${path}`
+  }
+  return `${base}${path}`
+}
+
 function parseBigInt(value: string | number | bigint | undefined): bigint {
   if (typeof value === "bigint") return value
   if (typeof value === "number") return BigInt(value)
@@ -129,7 +140,7 @@ export default function MarketPage() {
     queryKey: ["market", chainId, visibleCount],
     enabled: isSupportedChain,
     queryFn: async (): Promise<MarketResult> => {
-      const url = new URL(`${apiBaseUrl()}/tokens`)
+      const url = new URL(buildApiUrl('/tokens'))
       url.searchParams.set("version", "v1")
       url.searchParams.set("chainId", String(chainId))
       url.searchParams.set("page", "1")
