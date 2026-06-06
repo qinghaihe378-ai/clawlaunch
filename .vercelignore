@@ -1,5 +1,6 @@
-# Ignore server directory (not needed for Vercel)
-server/
+# Ignore server runtime files (but keep src for API imports)
+server/dist/
+server/node_modules/
 
 # Ignore node_modules
 node_modules/
