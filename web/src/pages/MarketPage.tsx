@@ -359,7 +359,7 @@ export default function MarketPage() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <div className="text-2xl font-bold gradient-text">🔥 热门代币</div>
+              <div className="text-2xl font-bold gradient-text">✨ 新创建</div>
               <div className="rounded-full bg-gradient-to-r from-orange-500/20 to-red-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-orange-300 border border-orange-500/30 animate-pulse">
                 Live
               </div>
