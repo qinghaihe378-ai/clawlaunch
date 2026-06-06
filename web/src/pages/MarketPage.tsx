@@ -407,7 +407,7 @@ export default function MarketPage() {
               return (
                 <div
                   key={t.token}
-                  className="group w-full rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/20 transition-all duration-200 px-3 py-2.5"
+                  className="group w-full rounded-xl glass-card hover:bg-white/10 transition-all duration-200 px-3 py-2.5"
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2">
