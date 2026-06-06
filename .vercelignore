@@ -1,0 +1,19 @@
+# Ignore server directory (not needed for Vercel)
+server/
+
+# Ignore node_modules
+node_modules/
+
+# Ignore build artifacts
+contracts/artifacts/
+contracts/cache/
+contracts/typechain-types/
+
+# Ignore development files
+*.log
+.env.local
+.env.*.local
+
+# Ignore debug files
+.dbg/
+.home/
