@@ -355,34 +355,36 @@ export default function MarketPage() {
       </div>
 
       <div className="space-y-3">
-        <div className="flex items-end justify-between gap-3">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <div className="text-3xl font-bold tracking-wide gradient-text">🔥 热门代币</div>
-              <div className="rounded-lg bg-gradient-to-r from-orange-500/20 to-red-500/20 px-2 py-1 text-xs font-medium text-orange-300 border border-orange-500/30">
+              <div className="text-2xl font-bold gradient-text">🔥 热门代币</div>
+              <div className="rounded-full bg-gradient-to-r from-orange-500/20 to-red-500/20 px-2.5 py-0.5 text-[10px] font-semibold text-orange-300 border border-orange-500/30 animate-pulse">
                 Live
               </div>
             </div>
-            <div className="mt-1 text-sm text-neutral-400">
-              {data?.total ? `${data.total} 个代币` : "加载中..."} • 实时刷新
+            <div className="mt-1 text-xs text-neutral-400">
+              {data?.total ? `${data.total} 个代币` : "加载中..."}
             </div>
           </div>
-          <div className="mr-56 flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-neutral-200 hover:bg-white/10 transition-all duration-200"
+              className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-white/10 transition-all duration-200 active:scale-95"
               onClick={() => setFilterOpen(true)}
             >
               ⚙️ 筛选
             </button>
             <button
-              className="rounded-xl border border-white/10 bg-gradient-to-r from-blue-500/20 to-purple-500/20 px-4 py-2 text-sm font-medium text-neutral-200 hover:from-blue-500/30 hover:to-purple-500/30 transition-all duration-200 glow-effect flex items-center gap-2"
+              className="rounded-lg border border-white/10 bg-gradient-to-r from-blue-500/20 to-purple-500/20 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:from-blue-500/30 hover:to-purple-500/30 transition-all duration-200 glow-effect flex items-center gap-1.5 active:scale-95"
               onClick={() => refetch()}
             >
               <span className={isLoading ? "animate-spin" : ""}>🔄</span>
               刷新
             </button>
           </div>
+        </div>
         </div>
 
         {!isSupportedChain && (
