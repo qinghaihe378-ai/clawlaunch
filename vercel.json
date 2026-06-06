@@ -1,5 +1,4 @@
 {
-  "version": 2,
   "builds": [
     {
       "src": "web/package.json",
@@ -7,10 +6,6 @@
       "config": {
         "distDir": "dist"
       }
-    },
-    {
-      "src": "api/**/*.ts",
-      "use": "@vercel/node"
     }
   ],
   "routes": [
@@ -22,8 +17,5 @@
       "src": "/(.*)",
       "dest": "/web/$1"
     }
-  ],
-  "env": {
-    "NODE_VERSION": "18"
-  }
+  ]
 }
