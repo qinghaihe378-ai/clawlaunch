@@ -10,6 +10,7 @@ type ListTokenQuery = {
   chainId?: string
   page?: string
   pageSize?: string
+  traceId?: string
 }
 
 type TokenDetailQuery = {
