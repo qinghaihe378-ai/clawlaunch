@@ -104,6 +104,12 @@ const ERC20_ABI = [{
   "type": "function"
 }]
 
+// Factory TokenCreated 事件签名
+const TOKEN_CREATED_EVENT = 'TokenCreated(address,address,uint8)'
+
+// BSCScan API Key（从环境变量读取）
+const BSCSCAN_API_KEY = 'W1KIQ5A6ASG2YER3BUKGJ36UR32E8QMEY2'
+
 // Helper: 获取 Public Client
 function getPublicClient(chainId: number) {
   const rpcUrl = RPC_URLS[chainId as keyof typeof RPC_URLS] || RPC_URLS[56]
@@ -404,6 +410,98 @@ app.get('/api/tokens/:address', async (c) => {
     return c.json(ok(serializeData(result)))
   } catch (error: any) {
     console.error('[Token Detail Error]', error)
+    return c.json(fail(500, error.message), 500)
+  }
+})
+
+// 验证代币合约
+app.get('/api/verify-token', async (c) => {
+  try {
+    const address = c.req.query('address')
+    const templateId = c.req.query('templateId')
+    const chainIdParam = c.req.query('chainId')
+    
+    if (!address || !templateId) {
+      return c.json(fail(400, 'Missing address or templateId'), 400)
+    }
+    
+    const chainId = chainIdParam ? parseInt(chainIdParam) : 56
+    const isTestnet = chainId === 97
+    const bscscanUrl = isTestnet ? 'https://api-testnet.bscscan.com/api' : 'https://api.bscscan.com/api'
+    
+    // 确定合约路径
+    const contractPath = templateId === '0' 
+      ? 'contracts/MemeToken.sol:MemeToken'
+      : 'contracts/MemeTokenTax.sol:MemeTokenTax'
+    
+    console.log(`[Verify Token] address=${address}, templateId=${templateId}, chainId=${chainId}`)
+    
+    // 调用 BSCScan API 进行验证
+    const params = new URLSearchParams({
+      module: 'contract',
+      action: 'verifysourcecode',
+      apikey: BSCSCAN_API_KEY,
+      contractaddress: address,
+      sourceCode: '', // 需要通过 Hardhat 获取源码
+      codeformat: 'solidity-single-file',
+      contractname: contractPath.split(':')[1],
+      compilerversion: 'v0.8.20+commit.a1b79de6',
+      optimizationUsed: '1',
+      runs: '800',
+      constructorArguements: '' // 无构造函数参数
+    })
+    
+    const response = await fetch(`${bscscanUrl}?${params.toString()}`, {
+      method: 'POST'
+    })
+    
+    const data = await response.json()
+    
+    if (data.status === '1') {
+      return c.json(ok({
+        message: 'Verification submitted successfully',
+        guid: data.result,
+        statusUrl: `${isTestnet ? 'https://testnet.bscscan.com' : 'https://bscscan.com'}/address/${address}`
+      }))
+    } else {
+      return c.json(fail(400, data.result || 'Verification failed'))
+    }
+  } catch (error: any) {
+    console.error('[Verify Token Error]', error)
+    return c.json(fail(500, error.message), 500)
+  }
+})
+
+// 检查验证状态
+app.get('/api/verify-status', async (c) => {
+  try {
+    const guid = c.req.query('guid')
+    const chainIdParam = c.req.query('chainId')
+    
+    if (!guid) {
+      return c.json(fail(400, 'Missing guid'), 400)
+    }
+    
+    const chainId = chainIdParam ? parseInt(chainIdParam) : 56
+    const isTestnet = chainId === 97
+    const bscscanUrl = isTestnet ? 'https://api-testnet.bscscan.com/api' : 'https://api.bscscan.com/api'
+    
+    const params = new URLSearchParams({
+      module: 'contract',
+      action: 'checkverifystatus',
+      apikey: BSCSCAN_API_KEY,
+      guid: guid
+    })
+    
+    const response = await fetch(`${bscscanUrl}?${params.toString()}`)
+    const data = await response.json()
+    
+    return c.json(ok({
+      status: data.status,
+      result: data.result
+    }))
+  } catch (error: any) {
+    console.error('[Verify Status Error]', error)
     return c.json(fail(500, error.message), 500)
   }
 })

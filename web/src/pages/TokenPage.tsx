@@ -41,6 +41,11 @@ export default function TokenPage() {
   const factory = getFactoryAddress(chainId)
   const publicClient = usePublicClient()
   const { address } = useAccount()
+  
+  // 验证状态
+  const [verifying, setVerifying] = useState(false)
+  const [verifyStatus, setVerifyStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle')
+  const [verifyMessage, setVerifyMessage] = useState('')
 
   const { data: info, refetch } = useQuery({
     queryKey: ["tokenInfo", chainId, token],
@@ -127,6 +132,37 @@ export default function TokenPage() {
     enabled: !!info?.market,
     onLogs: () => void refetch()
   })
+
+  // 验证合约函数
+  const handleVerify = async () => {
+    if (!info) return
+    
+    setVerifying(true)
+    setVerifyStatus('pending')
+    setVerifyMessage('Submitting verification...')
+    
+    try {
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://clawlaunch.qinghaihe378.workers.dev'
+      const response = await fetch(
+        `${apiBaseUrl}/api/verify-token?address=${info.token}&templateId=${info.templateId}&chainId=${chainId}`
+      )
+      const data = await response.json()
+      
+      if (data.code === 0) {
+        setVerifyStatus('success')
+        setVerifyMessage(`Verification submitted! Check status in a few minutes.`)
+      } else {
+        setVerifyStatus('error')
+        setVerifyMessage(data.message || 'Verification failed')
+      }
+    } catch (error: any) {
+      console.error('Verification error:', error)
+      setVerifyStatus('error')
+      setVerifyMessage(error.message || 'Network error')
+    } finally {
+      setVerifying(false)
+    }
+  }
 
   if (!token) return <div className="glass-card rounded-2xl border-red-500/30 bg-red-500/10 p-5 text-sm text-red-300">Invalid address</div>
   if (!factory) {
@@ -217,7 +253,36 @@ export default function TokenPage() {
                 >
                   {info.token.slice(0, 6)}...{info.token.slice(-4)}
                 </span>
+                
+                {/* 验证按钮 */}
+                {!info.migrated && (
+                  <button
+                    onClick={handleVerify}
+                    disabled={verifying || verifyStatus === 'success'}
+                    className={`rounded px-2 py-0.5 text-xs font-medium transition-all duration-200 ${
+                      verifyStatus === 'success'
+                        ? 'bg-emerald-500/20 text-emerald-300 cursor-default'
+                        : verifyStatus === 'error'
+                        ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
+                        : 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 disabled:opacity-50'
+                    }`}
+                    title="Verify contract on BSCScan"
+                  >
+                    {verifying ? 'Verifying...' : verifyStatus === 'success' ? '✓ Verified' : 'Verify'}
+                  </button>
+                )}
               </div>
+              
+              {/* 验证状态消息 */}
+              {verifyMessage && (
+                <div className={`text-xs mt-1 ${
+                  verifyStatus === 'success' ? 'text-emerald-400' :
+                  verifyStatus === 'error' ? 'text-red-400' :
+                  'text-neutral-400'
+                }`}>
+                  {verifyMessage}
+                </div>
+              )}
               
               {/* 描述 */}
               {info.description && (
