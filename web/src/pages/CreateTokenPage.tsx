@@ -417,7 +417,14 @@ function TxWatcher(props: { txHash: `0x${string}`; onToken: (token: `0x${string}
       eventName: "TokenCreated"
     })
     const token = logs[0]?.args?.token as `0x${string}` | undefined
-    if (token) props.onToken(token)
+    
+    if (token) {
+      // 延迟触发验证（等待 BSCScan 索引）
+      setTimeout(() => {
+        autoVerifyToken(token, chainId)
+      }, 3000)
+      props.onToken(token)
+    }
   } catch {
     void 0
   }
@@ -428,4 +435,24 @@ function TxWatcher(props: { txHash: `0x${string}`; onToken: (token: `0x${string}
       <div className="mt-1 text-xs text-neutral-500">Factory: {factory}</div>
     </div>
   )
+}
+
+// 自动验证代币合约（简化版：所有代币都尝试验证）
+async function autoVerifyToken(token: string, chainId: number) {
+  try {
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://clawlaunch.qinghaihe378.workers.dev'
+    // 默认尝试 templateId=1 (有税代币)
+    const response = await fetch(
+      `${apiBaseUrl}/api/verify-token?address=${token}&templateId=1&chainId=${chainId}`
+    )
+    const data = await response.json()
+    
+    if (data.code === 0) {
+      console.log('[Auto Verify] Verification submitted for token:', token)
+    } else {
+      console.warn('[Auto Verify] Verification failed:', data.message)
+    }
+  } catch (error) {
+    console.error('[Auto Verify] Error:', error)
+  }
 }
