@@ -260,24 +260,38 @@ export default function CreateTokenPage() {
           <div>
             <div className="text-sm font-medium text-neutral-300">打满线</div>
             <select
-              className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all duration-200"
+              className="mt-2 w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm outline-none appearance-none cursor-pointer focus:border-blue-500/50 focus:bg-white/15 transition-all duration-200"
               value={targetRaiseOption}
               onChange={(e) => setTargetRaiseOption(e.target.value as "16.5" | "6" | "0.01")}
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                backgroundPosition: `right 0.5rem center`,
+                backgroundRepeat: `no-repeat`,
+                backgroundSize: `1.5em 1.5em`,
+                paddingRight: `2.5rem`
+              }}
             >
-              <option value="16.5">16.5 BNB</option>
-              <option value="6">6 BNB</option>
-              <option value="0.01">0.01 BNB (测试用)</option>
+              <option value="16.5" className="bg-neutral-900 text-white">16.5 BNB</option>
+              <option value="6" className="bg-neutral-900 text-white">6 BNB</option>
+              <option value="0.01" className="bg-neutral-900 text-white">0.01 BNB (测试用)</option>
             </select>
           </div>
           <div>
             <div className="text-sm font-medium text-neutral-300">机制</div>
             <select
-              className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all duration-200"
+              className="mt-2 w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm outline-none appearance-none cursor-pointer focus:border-blue-500/50 focus:bg-white/15 transition-all duration-200"
               value={String(templateId)}
               onChange={(e) => setTemplateId((Number(e.target.value) === 1 ? 1 : 0) as 0 | 1)}
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                backgroundPosition: `right 0.5rem center`,
+                backgroundRepeat: `no-repeat`,
+                backgroundSize: `1.5em 1.5em`,
+                paddingRight: `2.5rem`
+              }}
             >
-              <option value="0">基础版（无税）</option>
-              <option value="1">税费版（分红/销毁/回流）</option>
+              <option value="0" className="bg-neutral-900 text-white">基础版（无税）</option>
+              <option value="1" className="bg-neutral-900 text-white">税费版（分红/销毁/回流）</option>
             </select>
           </div>
             {templateId === 1 ? (
