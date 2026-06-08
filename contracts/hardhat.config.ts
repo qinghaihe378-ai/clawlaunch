@@ -41,12 +41,19 @@ const config: HardhatUserConfig = {
     version: "0.8.20",
     settings: {
       viaIR: true,
-      optimizer: { enabled: true, runs: 800 }
+      optimizer: { enabled: true, runs: 800 },
+      metadata: {
+        bytecodeHash: "ipfs",
+        useLiteralContent: true
+      }
     }
   },
   networks,
   etherscan: {
     apiKey: process.env.BSCSCAN_API_KEY ?? ""
+  },
+  sourcify: {
+    enabled: true
   }
 }
 
