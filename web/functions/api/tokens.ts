@@ -234,21 +234,23 @@ export async function onRequestGet(context: any) {
           // 获取市场 BNB 余额
           const marketBnb = await client.getBalance({ address: market as `0x${string}` }).catch(() => 0n)
 
-          // 获取报价
+          // 获取报价（仅未迁移的代币）
           let quotePriceBnbPerToken = undefined
-          try {
-            const quote = await client.readContract({
-              address: market as `0x${string}`,
-              abi: MARKET_ABI as any,
-              functionName: 'quoteBuy',
-              args: [10n ** 17n]
-            }) as any
-            const tokensOut = quote[0]
-            if (tokensOut > 0n) {
-              quotePriceBnbPerToken = (10n ** 17n) / tokensOut
+          if (!migratedResult) {
+            try {
+              const quote = await client.readContract({
+                address: market as `0x${string}`,
+                abi: MARKET_ABI as any,
+                functionName: 'quoteBuy',
+                args: [10n ** 17n] // 0.1 BNB
+              }) as any
+              const tokensOut = quote[0]
+              if (tokensOut > 0n) {
+                quotePriceBnbPerToken = (10n ** 17n) / tokensOut
+              }
+            } catch (e) {
+              console.error('Failed to get quote:', e)
             }
-          } catch (e) {
-            console.error('Failed to get quote:', e)
           }
 
           return {

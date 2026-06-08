@@ -105,14 +105,12 @@ export default function CreateTokenPage() {
 
   const disabledReason = useMemo(() => {
     if (!factory) return "未检测到 Factory（请确认当前链为 BSC 56）"
-    if (!address) return "请先连接钱包"
-    if (!name.trim() || !symbol.trim()) return "请填写名称与符号"
     if (creationFee === undefined) return "读取创建费用失败"
     if (!taxConfig.ok) return taxConfig.reason
     if (isPending) return "提交中…"
     if (isConfirming) return "确认中…"
     return null
-  }, [factory, address, name, symbol, creationFee, taxConfig, isPending, isConfirming])
+  }, [factory, creationFee, taxConfig, isPending, isConfirming])
 
   const disabled = Boolean(disabledReason)
 
@@ -189,15 +187,7 @@ export default function CreateTokenPage() {
           ) : null}
         </div>
         {logoError && <div className="mt-2 text-sm text-red-400">❌ {logoError}</div>}
-        <div className="mt-3">
-          <div className="text-sm font-medium text-neutral-300">封面链接（可选）</div>
-          <input
-            className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all duration-200 placeholder:text-neutral-500"
-            value={logo.startsWith("data:") ? "" : logo}
-            onChange={(e) => setLogo(e.target.value)}
-            placeholder="https://... 或 ipfs://..."
-          />
-        </div>
+
       </div>
 
       <div className="glass-card rounded-2xl p-5">
@@ -383,7 +373,7 @@ export default function CreateTokenPage() {
             {isPending ? "提交中…" : isConfirming ? "确认中…" : "创建代币"}
           </button>
 
-          {logoHint ? <div className="mt-2 text-sm text-amber-300">{logoHint}</div> : null}
+
           {disabledReason && !isPending && !isConfirming ? (
             <div className="mt-2 text-sm text-neutral-400">{disabledReason}</div>
           ) : null}

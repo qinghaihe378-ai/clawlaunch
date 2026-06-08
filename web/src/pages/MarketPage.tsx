@@ -194,7 +194,8 @@ export default function MarketPage() {
     })
   }, [data, q, raise, status, template])
 
-  function pct(marketBnb: bigint, targetRaise: bigint) {
+  function pct(marketBnb: bigint, targetRaise: bigint, migrated: boolean) {
+    if (migrated) return 100 // 已迁移显示100%
     if (targetRaise <= 0n) return 0
     const p = (marketBnb * 10000n) / targetRaise
     const clipped = p > 10000n ? 10000n : p
@@ -403,7 +404,7 @@ export default function MarketPage() {
         <div className="w-full overflow-hidden rounded-2xl glass-card">
           <div className="space-y-2 p-2">
             {rows.map((t) => {
-              const p = pct(t.marketBnb, t.targetRaise)
+              const p = pct(t.marketBnb, t.targetRaise, t.migrated)
               return (
                 <div
                   key={t.token}
