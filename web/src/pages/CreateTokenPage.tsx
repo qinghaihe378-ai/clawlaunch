@@ -258,41 +258,49 @@ export default function CreateTokenPage() {
             />
           </div>
           <div>
-            <div className="text-sm font-medium text-neutral-300">打满线</div>
-            <select
-              className="mt-2 w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm outline-none appearance-none cursor-pointer focus:border-blue-500/50 focus:bg-white/15 transition-all duration-200"
-              value={targetRaiseOption}
-              onChange={(e) => setTargetRaiseOption(e.target.value as "16.5" | "6" | "0.01")}
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                backgroundPosition: `right 0.5rem center`,
-                backgroundRepeat: `no-repeat`,
-                backgroundSize: `1.5em 1.5em`,
-                paddingRight: `2.5rem`
-              }}
-            >
-              <option value="16.5" className="bg-neutral-900 text-white">16.5 BNB</option>
-              <option value="6" className="bg-neutral-900 text-white">6 BNB</option>
-              <option value="0.01" className="bg-neutral-900 text-white">0.01 BNB (测试用)</option>
-            </select>
+            <div className="text-sm font-medium text-neutral-300 mb-2">打满线</div>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { value: "16.5", label: "16.5 BNB" },
+                { value: "6", label: "6 BNB" },
+                { value: "0.01", label: "0.01 BNB" }
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setTargetRaiseOption(option.value as "16.5" | "6" | "0.01")}
+                  className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    targetRaiseOption === option.value
+                      ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25"
+                      : "bg-white/10 text-neutral-300 border border-white/10 hover:bg-white/15"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
           <div>
-            <div className="text-sm font-medium text-neutral-300">机制</div>
-            <select
-              className="mt-2 w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm outline-none appearance-none cursor-pointer focus:border-blue-500/50 focus:bg-white/15 transition-all duration-200"
-              value={String(templateId)}
-              onChange={(e) => setTemplateId((Number(e.target.value) === 1 ? 1 : 0) as 0 | 1)}
-              style={{
-                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                backgroundPosition: `right 0.5rem center`,
-                backgroundRepeat: `no-repeat`,
-                backgroundSize: `1.5em 1.5em`,
-                paddingRight: `2.5rem`
-              }}
-            >
-              <option value="0" className="bg-neutral-900 text-white">基础版（无税）</option>
-              <option value="1" className="bg-neutral-900 text-white">税费版（分红/销毁/回流）</option>
-            </select>
+            <div className="text-sm font-medium text-neutral-300 mb-2">机制</div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { value: 0, label: "基础版（无税）" },
+                { value: 1, label: "税费版（分红/销毁/回流）" }
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setTemplateId(option.value as 0 | 1)}
+                  className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                    templateId === option.value
+                      ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25"
+                      : "bg-white/10 text-neutral-300 border border-white/10 hover:bg-white/15"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
           </div>
             {templateId === 1 ? (
               <div className="glass-card rounded-xl p-4">
