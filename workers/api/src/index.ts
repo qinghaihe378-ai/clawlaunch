@@ -408,4 +408,9 @@ app.get('/api/tokens/:address', async (c) => {
   }
 })
 
-export default app
+// Cloudflare Workers 标准导出
+export default {
+  async fetch(request: Request, env: any, ctx: any) {
+    return app.fetch(request, env, ctx)
+  }
+}
