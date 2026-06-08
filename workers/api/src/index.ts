@@ -115,14 +115,14 @@ function getPublicClient(chainId: number) {
   })
 }
 
-// Helper: 成功响应
+// Helper: 成功响应（前端期望的格式）
 function ok(data: any) {
-  return { success: true, data }
+  return { code: 200, msg: "success", data }
 }
 
-// Helper: 失败响应
+// Helper: 失败响应（前端期望的格式）
 function fail(status: number, message: string) {
-  return { success: false, error: message }
+  return { code: status, msg: message, data: null }
 }
 
 // Helper: 序列化 bigint
