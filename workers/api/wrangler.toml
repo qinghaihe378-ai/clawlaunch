@@ -1,6 +1,7 @@
 name = "clawlaunch"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
+account_id = "3dd09cbdbeab51fb3dbddf0027085cba"
 
 [vars]
 NODE_ENV = "production"

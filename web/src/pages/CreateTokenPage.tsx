@@ -21,7 +21,7 @@ export default function CreateTokenPage() {
   const [telegram, setTelegram] = useState("")
   const [twitter, setTwitter] = useState("")
   const [website, setWebsite] = useState("")
-  const [targetRaiseOption, setTargetRaiseOption] = useState<"16.5" | "6">("16.5")
+  const [targetRaiseOption, setTargetRaiseOption] = useState<"16.5" | "6" | "0.01">("16.5")
   const [templateId, setTemplateId] = useState<0 | 1>(0)
   const [taxRatePercent, setTaxRatePercent] = useState("1.0")
   const [burnSharePercent, setBurnSharePercent] = useState("20")
@@ -262,10 +262,11 @@ export default function CreateTokenPage() {
             <select
               className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all duration-200"
               value={targetRaiseOption}
-              onChange={(e) => setTargetRaiseOption(e.target.value === "6" ? "6" : "16.5")}
+              onChange={(e) => setTargetRaiseOption(e.target.value as "16.5" | "6" | "0.01")}
             >
               <option value="16.5">16.5 BNB</option>
               <option value="6">6 BNB</option>
+              <option value="0.01">0.01 BNB (测试用)</option>
             </select>
           </div>
           <div>
@@ -339,7 +340,7 @@ export default function CreateTokenPage() {
                     telegram.trim(),
                     twitter.trim(),
                     website.trim(),
-                    targetRaiseOption === "6" ? 6000000000000000000n : 16500000000000000000n,
+                    targetRaiseOption === "6" ? 6000000000000000000n : targetRaiseOption === "0.01" ? 10000000000000000n : 16500000000000000000n,
                     taxConfig.ok ? taxConfig.templateId : 0,
                     taxConfig.ok ? taxConfig.taxBps : 0,
                     taxConfig.ok ? taxConfig.burnShareBps : 0,

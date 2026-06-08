@@ -15,7 +15,7 @@ contract BondingCurveMarket is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     address internal constant DEAD = 0x000000000000000000000000000000000000dEaD;
-    uint256 internal constant LP_LOCK_DURATION = 2000 days;
+    uint256 internal constant LP_LOCK_DURATION = 365 days; // 锁仓时间：1年
     uint256 internal constant WAD = 1e18;
 
     address public immutable token;

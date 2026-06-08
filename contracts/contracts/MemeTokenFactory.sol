@@ -75,11 +75,11 @@ contract MemeTokenFactory is Ownable {
         taxDeployer = taxDeployer_;
         locker = new LiquidityLocker(address(this));
 
-        creationFee = 0.005 ether;
+        creationFee = 0.005 ether; // 创建费：0.005 BNB
         targetRaise = 16.5 ether;
         virtualBnbReserve = 1 ether;
-        buyFeeBps = 100;
-        sellFeeBps = 100;
+        buyFeeBps = 100;   // 曲线买入手续费：1%（100 BPS）
+        sellFeeBps = 100;  // 曲线卖出手续费：1%（100 BPS）
         antiSnipingDelaySeconds = 120;
     }
 
@@ -157,7 +157,10 @@ contract MemeTokenFactory is Ownable {
         }
 
         require(
-            targetRaiseOverride == 0 || targetRaiseOverride == 6 ether || targetRaiseOverride == 16.5 ether,
+            targetRaiseOverride == 0 || 
+            targetRaiseOverride == 6 ether || 
+            targetRaiseOverride == 16.5 ether ||
+            targetRaiseOverride == 10000000000000000, // 0.01 BNB for testing
             "target"
         );
         uint256 tr = targetRaiseOverride == 0 ? targetRaise : targetRaiseOverride;

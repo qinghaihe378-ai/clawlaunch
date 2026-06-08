@@ -18,3 +18,5 @@ typechain-types
 .home
 contracts/.home
 web/tsconfig.tsbuildinfo
+.vercel
+.env*
