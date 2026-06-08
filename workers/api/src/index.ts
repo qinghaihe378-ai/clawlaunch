@@ -11,12 +11,12 @@ app.use('/*', cors())
 // 合约地址配置（⚠️ 每次重新部署合约后需要更新这里）
 const DEPLOYMENTS = {
   56: { // BSC Mainnet
-    factory: '0xeEDAA1271dc3a5E9D38e76Aee68229ca6B39c3Cd', // ← 替换为新工厂地址
+    factory: '0xc411364F32f01fe8b281c0510B09d9d1943eC1F2',
     wbnb: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
     router: '0x10ED43C718714eb63d5aA57B78B54704E256024E'
   },
   97: { // BSC Testnet
-    factory: '0xd0C042eFc846D752f9bE26FB6e0E0D8C666F468C', // ← 替换为新工厂地址
+    factory: '0xd0C042eFc846D752f9bE26FB6e0E0D8C666F468C',
     wbnb: '0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd',
     router: '0x9ac64cc6e4415144c455bd8e4837fea55603e5c3'
   }

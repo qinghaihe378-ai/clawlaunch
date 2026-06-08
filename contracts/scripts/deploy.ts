@@ -68,6 +68,41 @@ async function main() {
   console.log("router", router)
   console.log("taxDeployer", taxDeployerAddress)
   console.log("deployments", deploymentPath)
+
+  // 自动验证合约
+  if (chainId === 56n || chainId === 97n) {
+    console.log("\n开始验证合约...")
+    
+    try {
+      // 验证 TaxTokenDeployer
+      await hre.run("verify:verify", {
+        address: taxDeployerAddress,
+        constructorArguments: [],
+      })
+      console.log("✅ TaxTokenDeployer 验证成功")
+    } catch (e: any) {
+      if (e.message.includes("Already Verified")) {
+        console.log("✓ TaxTokenDeployer 已验证")
+      } else {
+        console.error("❌ TaxTokenDeployer 验证失败:", e.message)
+      }
+    }
+
+    try {
+      // 验证 MemeTokenFactory
+      await hre.run("verify:verify", {
+        address: factoryAddress,
+        constructorArguments: [deployer.address, treasury, wbnb, router, taxDeployerAddress],
+      })
+      console.log("✅ MemeTokenFactory 验证成功")
+    } catch (e: any) {
+      if (e.message.includes("Already Verified")) {
+        console.log("✓ MemeTokenFactory 已验证")
+      } else {
+        console.error("❌ MemeTokenFactory 验证失败:", e.message)
+      }
+    }
+  }
 }
 
 main().catch((e) => {
