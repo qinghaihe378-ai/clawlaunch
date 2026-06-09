@@ -18,8 +18,11 @@
       "dest": "/web/api/$1"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/web/$1"
+      "dest": "/web/index.html"
     }
   ]
 }
