@@ -11,7 +11,7 @@ import {
   useWatchContractEvent,
   useWriteContract
 } from "wagmi"
-import { maxUint256, parseUnits } from "viem"
+import { maxUint256, parseUnits, formatUnits } from "viem"
 
 import { getFactoryAddress } from "../contracts/addresses"
 import { bondingCurveMarketAbi, erc20Abi, memeTokenFactoryAbi, memeTokenTaxAbi } from "../contracts/abi"
@@ -351,7 +351,7 @@ export default function TokenPage() {
 function TradePanel(props: TradePanelProps) {
   const { address } = useAccount()
   const [bnbIn, setBnbIn] = useState("0.1")
-  const [tokensIn, setTokensIn] = useState("1000000")
+  const [tokensIn, setTokensIn] = useState("")
   const [slippagePct, setSlippagePct] = useState("1")
 
   const bnbInWei = useMemo(() => {
@@ -433,6 +433,15 @@ function TradePanel(props: TradePanelProps) {
   
   const userBnbBalance = (bnbBalance?.value as bigint | undefined) ?? 0n
   const userTokenBalance = (tokenBalance as bigint | undefined) ?? 0n
+
+  // 卖代币输入框显示的默认值（用户余额）
+  const tokensInDisplayValue = useMemo(() => {
+    if (tokensIn === "") {
+      // 如果用户没有输入，显示余额
+      return formatUnits(userTokenBalance, 18)
+    }
+    return tokensIn
+  }, [tokensIn, userTokenBalance])
 
   const { writeContract, data: txHash, isPending, error } = useWriteContract()
   const { isLoading: isConfirming } = useWaitForTransactionReceipt({ hash: txHash })
@@ -549,7 +558,7 @@ function TradePanel(props: TradePanelProps) {
             </div>
             <input
               className="w-full rounded-lg border border-white/10 bg-neutral-950 px-3 py-2 text-sm outline-none focus:border-red-500/50 mb-2"
-              value={tokensIn}
+              value={tokensInDisplayValue}
               onChange={(e) => setTokensIn(e.target.value)}
               placeholder="Token amount"
             />
