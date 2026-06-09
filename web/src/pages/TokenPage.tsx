@@ -199,12 +199,21 @@ export default function TokenPage() {
 
   const targetRaiseLabel =
     info.targetRaise === 2000000000000000000n ? "2" : info.targetRaise === 3000000000000000000n ? "3" : undefined
-  const progressPct =
-    info.migrated ? 100 : // 已迁移显示100%
-    info.targetRaise > 0n
-      ? Number(((info.marketBnb * 10000n) / info.targetRaise > 10000n ? 10000n : (info.marketBnb * 10000n) / info.targetRaise)) /
-        100
-      : 0
+  
+  // Calculate progress percentage safely
+  const progressPct = useMemo(() => {
+    if (info.migrated) return 100
+    if (info.targetRaise <= 0n) return 0
+    
+    try {
+      const ratio = (info.marketBnb * 10000n) / info.targetRaise
+      const clampedRatio = ratio > 10000n ? 10000n : ratio
+      return Number(clampedRatio) / 100
+    } catch (e) {
+      console.error('Progress calculation error:', e)
+      return 0
+    }
+  }, [info.marketBnb, info.targetRaise, info.migrated])
 
   return (
     <div className="space-y-3">
