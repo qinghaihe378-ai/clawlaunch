@@ -408,7 +408,7 @@ function TradePanel(props: TradePanelProps) {
   })
   const withdrawable = (withdrawableDividend as bigint | undefined) ?? 0n
 
-  const { data: allowance } = useReadContract({
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: props.token,
     abi: erc20Abi,
     functionName: "allowance",
@@ -436,6 +436,26 @@ function TradePanel(props: TradePanelProps) {
 
   const { writeContract, data: txHash, isPending, error } = useWriteContract()
   const { isLoading: isConfirming } = useWaitForTransactionReceipt({ hash: txHash })
+
+  const {
+    writeContract: writeApprove,
+    data: approveTxHash,
+    isPending: isApprovePending,
+    error: approveError
+  } = useWriteContract()
+  const { isLoading: isApproveConfirming } = useWaitForTransactionReceipt({ hash: approveTxHash })
+
+  // 监听 approve 交易完成后重新查询 allowance
+  useWatchContractEvent({
+    address: props.token,
+    abi: erc20Abi,
+    eventName: "Approval",
+    args: { owner: address ?? undefined },
+    onLogs() {
+      // 强制刷新 allowance 查询
+      void refetchAllowance()
+    }
+  })
 
   const {
     writeContract: writeDividend,
@@ -535,9 +555,9 @@ function TradePanel(props: TradePanelProps) {
             {needsApprove ? (
               <button
                 className="w-full rounded-lg border border-blue-500 bg-blue-500/10 px-3 py-2 text-sm text-blue-300 hover:bg-blue-500/20 disabled:opacity-60 transition-all"
-                disabled={props.disabled || isPending || isConfirming}
+                disabled={props.disabled || isApprovePending || isApproveConfirming}
                 onClick={() =>
-                  writeContract({
+                  writeApprove({
                     address: props.token,
                     abi: erc20Abi,
                     functionName: "approve",
@@ -545,7 +565,7 @@ function TradePanel(props: TradePanelProps) {
                   })
                 }
               >
-                {isPending || isConfirming ? "⏳" : "Approve"}
+                {isApprovePending || isApproveConfirming ? "⏳" : "Approve"}
               </button>
             ) : (
               <button
@@ -567,6 +587,24 @@ function TradePanel(props: TradePanelProps) {
         </div>
       </div>
 
+      {/* Approve Error */}
+      {approveError && (
+        <div className="mt-2 text-xs text-red-400">
+          {(() => {
+            const msg = approveError.message || ''
+            if (msg.includes('User rejected') || msg.includes('user rejected') || msg.includes('cancelled')) {
+              return '❌ 授权已取消'
+            }
+            if (msg.includes('insufficient funds') || msg.includes('INSUFFICIENT_FUNDS')) {
+              return '❌ BNB 余额不足（需要 gas 费）'
+            }
+            const shortMsg = msg.split('\n')[0].substring(0, 100)
+            return `❌ ${shortMsg}`
+          })()}
+        </div>
+      )}
+
+      {/* Buy/Sell Error */}
       {error && (
         <div className="mt-2 text-xs text-red-400">
           {(() => {
