@@ -6,23 +6,15 @@
       "config": {
         "distDir": "dist"
       }
-    },
-    {
-      "src": "web/api/**/*.ts",
-      "use": "@vercel/node"
     }
   ],
   "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/web/api/$1"
-    },
     {
       "handle": "filesystem"
     },
     {
       "src": "/(.*)",
-      "dest": "/web/index.html"
+      "dest": "/index.html"
     }
   ]
 }
