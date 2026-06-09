@@ -21,7 +21,7 @@ export default function CreateTokenPage() {
   const [telegram, setTelegram] = useState("")
   const [twitter, setTwitter] = useState("")
   const [website, setWebsite] = useState("")
-  const [targetRaiseOption, setTargetRaiseOption] = useState<"16.5" | "6" | "0.01">("16.5")
+  const [targetRaiseOption, setTargetRaiseOption] = useState<"3" | "2" | "1">("3")
   const [templateId, setTemplateId] = useState<0 | 1>(0)
   const [taxRatePercent, setTaxRatePercent] = useState("1.0")
   const [burnSharePercent, setBurnSharePercent] = useState("20")
@@ -251,14 +251,14 @@ export default function CreateTokenPage() {
             <div className="text-sm font-medium text-neutral-300 mb-2">打满线</div>
             <div className="grid grid-cols-3 gap-2">
               {[
-                { value: "16.5", label: "16.5 BNB" },
-                { value: "6", label: "6 BNB" },
-                { value: "0.01", label: "0.01 BNB" }
+                { value: "3", label: "3 BNB" },
+                { value: "2", label: "2 BNB" },
+                { value: "1", label: "1 BNB" },
               ].map((option) => (
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => setTargetRaiseOption(option.value as "16.5" | "6" | "0.01")}
+                  onClick={() => setTargetRaiseOption(option.value as "3" | "2" | "1")}
                   className={`px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
                     targetRaiseOption === option.value
                       ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25"
@@ -352,7 +352,7 @@ export default function CreateTokenPage() {
                     telegram.trim(),
                     twitter.trim(),
                     website.trim(),
-                    targetRaiseOption === "6" ? 6000000000000000000n : targetRaiseOption === "0.01" ? 10000000000000000n : 16500000000000000000n,
+                    targetRaiseOption === "2" ? 2000000000000000000n : targetRaiseOption === "1" ? 1000000000000000000n : 3000000000000000000n,
                     taxConfig.ok ? taxConfig.templateId : 0,
                     taxConfig.ok ? taxConfig.taxBps : 0,
                     taxConfig.ok ? taxConfig.burnShareBps : 0,

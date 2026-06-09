@@ -136,7 +136,7 @@ export default function MarketPage() {
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT)
   const [q, setQ] = useState("")
   const [status, setStatus] = useState<"all" | "sale" | "dex">("all")
-  const [raise, setRaise] = useState<"all" | "6" | "16.5">("all")
+  const [raise, setRaise] = useState<"all" | "2" | "3">("all")
   const [template, setTemplate] = useState<"all" | "base" | "tax">("all")
   const [filterOpen, setFilterOpen] = useState(false)
   const isSupportedChain = chainId === 56 || chainId === 97
@@ -182,7 +182,8 @@ export default function MarketPage() {
       if (status === "dex" && !t.migrated) return false
       if (status === "sale" && t.migrated) return false
       if (raise === "6" && t.targetRaise !== 6000000000000000000n) return false
-      if (raise === "16.5" && t.targetRaise !== 16500000000000000000n) return false
+      if (raise === "3" && t.targetRaise !== 3000000000000000000n) return false
+      if (raise === "2" && t.targetRaise !== 2000000000000000000n) return false
       if (template === "tax" && t.templateId !== 1n) return false
       if (template === "base" && t.templateId !== 0n) return false
       if (!qq) return true
@@ -285,24 +286,24 @@ export default function MarketPage() {
                   <button
                     type="button"
                     className={
-                      raise === "6"
+                      raise === "2"
                         ? "rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-3 py-2.5 text-sm font-medium text-white shadow-lg shadow-blue-500/25"
                         : "rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm font-medium text-neutral-300 hover:bg-white/10 hover:text-white transition-all duration-200"
                     }
-                    onClick={() => setRaise("6")}
+                    onClick={() => setRaise("2")}
                   >
-                    6
+                    2
                   </button>
                   <button
                     type="button"
                     className={
-                      raise === "16.5"
+                      raise === "3"
                         ? "rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-3 py-2.5 text-sm font-medium text-white shadow-lg shadow-blue-500/25"
                         : "rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm font-medium text-neutral-300 hover:bg-white/10 hover:text-white transition-all duration-200"
                     }
-                    onClick={() => setRaise("16.5")}
+                    onClick={() => setRaise("3")}
                   >
-                    16.5
+                    3
                   </button>
                 </div>
               </div>
@@ -438,7 +439,7 @@ export default function MarketPage() {
                             {t.targetRaise === 6000000000000000000n ? (
                               <div className="rounded bg-neutral-800/50 px-1.5 py-0.5 text-[10px] font-medium text-neutral-300 border border-neutral-700">6 BNB</div>
                             ) : t.targetRaise === 16500000000000000000n ? (
-                              <div className="rounded bg-neutral-800/50 px-1.5 py-0.5 text-[10px] font-medium text-neutral-300 border border-neutral-700">16.5 BNB</div>
+                              <div className="rounded bg-neutral-800/50 px-1.5 py-0.5 text-[10px] font-medium text-neutral-300 border border-neutral-700">3 BNB</div>
                             ) : null}
                             {t.migrated ? (
                               <div className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300 border border-emerald-500/30">DEX</div>
@@ -510,7 +511,7 @@ export default function MarketPage() {
                               {t.targetRaise === 6000000000000000000n ? (
                                 <div className="rounded bg-neutral-800/50 px-1.5 py-0.5 text-[10px] font-medium text-neutral-300 border border-neutral-700">6 BNB</div>
                               ) : t.targetRaise === 16500000000000000000n ? (
-                                <div className="rounded bg-neutral-800/50 px-1.5 py-0.5 text-[10px] font-medium text-neutral-300 border border-neutral-700">16.5 BNB</div>
+                                <div className="rounded bg-neutral-800/50 px-1.5 py-0.5 text-[10px] font-medium text-neutral-300 border border-neutral-700">3 BNB</div>
                               ) : null}
                               {t.migrated ? (
                                 <div className="rounded bg-emerald-500/20 px-1.5 py-0.5 text-[10px] font-medium text-emerald-300 border border-emerald-500/30">DEX</div>

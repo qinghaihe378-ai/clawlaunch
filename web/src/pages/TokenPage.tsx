@@ -197,7 +197,7 @@ export default function TokenPage() {
   )
 
   const targetRaiseLabel =
-    info.targetRaise === 6000000000000000000n ? "6" : info.targetRaise === 16500000000000000000n ? "16.5" : undefined
+    info.targetRaise === 2000000000000000000n ? "2" : info.targetRaise === 3000000000000000000n ? "3" : undefined
   const progressPct =
     info.migrated ? 100 : // 已迁移显示100%
     info.targetRaise > 0n
