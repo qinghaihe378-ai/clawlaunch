@@ -377,13 +377,31 @@ export default function CreateTokenPage() {
           {disabledReason && !isPending && !isConfirming ? (
             <div className="mt-2 text-sm text-neutral-400">{disabledReason}</div>
           ) : null}
-          {error && <div className="text-sm text-red-400">{error.message}</div>}
+          {error && (
+            <div className="mt-2 text-sm text-red-400">
+              {(() => {
+                const msg = error.message || ''
+                // 用户取消交易
+                if (msg.includes('User rejected') || msg.includes('user rejected') || msg.includes('cancelled')) {
+                  return '❌ 交易已取消'
+                }
+                // 余额不足
+                if (msg.includes('insufficient funds') || msg.includes('INSUFFICIENT_FUNDS')) {
+                  return '❌ BNB 余额不足'
+                }
+                // 其他错误 - 只显示简短信息
+                const shortMsg = msg.split('\n')[0].substring(0, 100)
+                return `❌ ${shortMsg}`
+              })()}
+            </div>
+          )}
         </div>
       </div>
 
         {txHash && (
           <TxWatcher
             txHash={txHash}
+            templateId={templateId}
             onToken={(token) => {
               navigate(`/token/${token}`)
             }}
@@ -393,7 +411,7 @@ export default function CreateTokenPage() {
   )
 }
 
-function TxWatcher(props: { txHash: `0x${string}`; onToken: (token: `0x${string}`) => void }) {
+function TxWatcher(props: { txHash: `0x${string}`; templateId: number; onToken: (token: `0x${string}`) => void }) {
   const chainId = useChainId()
   const factory = getFactoryAddress(chainId)
   const { data } = useWaitForTransactionReceipt({ hash: props.txHash })
@@ -411,7 +429,7 @@ function TxWatcher(props: { txHash: `0x${string}`; onToken: (token: `0x${string}
     if (token) {
       // 延迟触发验证（等待 BSCScan 索引）
       setTimeout(() => {
-        autoVerifyToken(token, chainId)
+        autoVerifyToken(token, chainId, props.templateId)
       }, 3000)
       props.onToken(token)
     }
@@ -428,12 +446,12 @@ function TxWatcher(props: { txHash: `0x${string}`; onToken: (token: `0x${string}
 }
 
 // 自动验证代币合约（简化版：所有代币都尝试验证）
-async function autoVerifyToken(token: string, chainId: number) {
+async function autoVerifyToken(token: string, chainId: number, templateId: number) {
   try {
     const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://clawlaunch.qinghaihe378.workers.dev'
-    // 默认尝试 templateId=1 (有税代币)
+    // 使用用户选择的 templateId 进行验证
     const response = await fetch(
-      `${apiBaseUrl}/api/verify-token?address=${token}&templateId=1&chainId=${chainId}`
+      `${apiBaseUrl}/api/verify-token?address=${token}&templateId=${templateId}&chainId=${chainId}`
     )
     const data = await response.json()
     

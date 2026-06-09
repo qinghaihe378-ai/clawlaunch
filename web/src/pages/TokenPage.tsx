@@ -544,7 +544,28 @@ function TradePanel(props: TradePanelProps) {
         )}
       </div>
 
-      {error && <div className="mt-2 text-xs text-red-400">{error.message}</div>}
+      {error && (
+        <div className="mt-2 text-xs text-red-400">
+          {(() => {
+            const msg = error.message || ''
+            // 用户取消交易
+            if (msg.includes('User rejected') || msg.includes('user rejected') || msg.includes('cancelled')) {
+              return '❌ 交易已取消'
+            }
+            // 余额不足
+            if (msg.includes('insufficient funds') || msg.includes('INSUFFICIENT_FUNDS')) {
+              return '❌ BNB 余额不足'
+            }
+            // 滑点过高
+            if (msg.includes('slippage') || msg.includes('Slippage')) {
+              return '❌ 滑点过高，请调整滑点设置'
+            }
+            // 其他错误 - 只显示简短信息
+            const shortMsg = msg.split('\n')[0].substring(0, 100)
+            return `❌ ${shortMsg}`
+          })()}
+        </div>
+      )}
     </div>
   )
 }
