@@ -353,6 +353,7 @@ function TradePanel(props: TradePanelProps) {
   const [bnbIn, setBnbIn] = useState("0.1")
   const [tokensIn, setTokensIn] = useState("")
   const [slippagePct, setSlippagePct] = useState("1")
+  const [activeTab, setActiveTab] = useState<'buy' | 'sell'>('buy')
 
   const bnbInWei = useMemo(() => {
     try {
@@ -520,80 +521,181 @@ function TradePanel(props: TradePanelProps) {
 
       {/* Buy & Sell Tabs */}
       <div className="mb-4">
-        <div className="flex gap-2">
-          {/* Buy Section */}
-          <div className="flex-1 glass-card rounded-xl p-3 border-emerald-500/30">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-emerald-400">Buy</span>
-              <span className="text-[10px] text-neutral-500">Balance: {formatBn(userBnbBalance, 18, 6)} BNB</span>
-            </div>
-            <input
-              className="w-full rounded-lg border border-white/10 bg-neutral-950 px-3 py-2 text-sm outline-none focus:border-emerald-500/50 mb-2"
-              value={bnbIn}
-              onChange={(e) => setBnbIn(e.target.value)}
-              placeholder="BNB amount"
-            />
+        {/* Tab Switcher */}
+        <div className="glass-card rounded-2xl p-1 mb-4">
+          <div className="flex gap-1">
             <button
-              className="w-full rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 px-3 py-2 text-sm font-medium text-white hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-60 transition-all shadow-lg shadow-emerald-500/20"
-              disabled={props.disabled || isPending || isConfirming || bnbInWei === 0n}
-              onClick={() =>
-                writeContract({
-                  address: props.market,
-                  abi: bondingCurveMarketAbi,
-                  functionName: "buy",
-                  args: [address!, minTokensOut],
-                  value: bnbInWei
-                })
-              }
+              onClick={() => setActiveTab('buy')}
+              className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                activeTab === 'buy'
+                  ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30'
+                  : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
+              }`}
             >
-              {isPending || isConfirming ? "⏳" : "Buy"}
+              Buy
+            </button>
+            <button
+              onClick={() => setActiveTab('sell')}
+              className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                activeTab === 'sell'
+                  ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30'
+                  : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
+              }`}
+            >
+              Sell
             </button>
           </div>
+        </div>
 
-          {/* Sell Section */}
-          <div className="flex-1 glass-card rounded-xl p-3 border-red-500/30">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-red-400">Sell</span>
-              <span className="text-[10px] text-neutral-500">Balance: {formatBn(userTokenBalance, 18, 6)}</span>
-            </div>
-            <input
-              className="w-full rounded-lg border border-white/10 bg-neutral-950 px-3 py-2 text-sm outline-none focus:border-red-500/50 mb-2"
-              value={tokensInDisplayValue}
-              onChange={(e) => setTokensIn(e.target.value)}
-              placeholder="Token amount"
-            />
-            {needsApprove ? (
+        {/* Trade Content */}
+        <div className="glass-card rounded-2xl p-4">
+          {activeTab === 'buy' ? (
+            // Buy Section
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs text-neutral-400">You pay</span>
+                <span className="text-xs text-neutral-300">Balance: {formatBn(userBnbBalance, 18, 6)} BNB</span>
+              </div>
+              <div className="relative mb-4">
+                <input
+                  className="w-full rounded-xl border border-white/10 bg-neutral-950 px-4 py-3 pr-24 text-lg outline-none focus:border-emerald-500/50 transition-all"
+                  value={bnbIn}
+                  onChange={(e) => setBnbIn(e.target.value)}
+                  placeholder="0.0"
+                  type="number"
+                  step="any"
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                  <span className="text-sm font-medium text-neutral-300">BNB</span>
+                  <div className="h-6 w-6 rounded-full bg-yellow-500 flex items-center justify-center">
+                    <span className="text-xs">💎</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Quick Amount Buttons */}
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {["0.1", "0.5", "1"].map((val) => (
+                  <button
+                    key={val}
+                    onClick={() => setBnbIn(val)}
+                    className="rounded-xl bg-white/5 px-3 py-2 text-sm text-neutral-300 hover:bg-white/10 transition-all border border-white/10"
+                  >
+                    {val} BNB
+                  </button>
+                ))}
+              </div>
+              
+              {/* You Get */}
+              <div className="mb-4 p-3 rounded-xl bg-white/5 border border-white/5">
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-neutral-400">You get</span>
+                </div>
+                <div className="text-lg font-semibold text-neutral-200">
+                  {formatBn(tokensOut, 18, 6)} {props.isTax ? '' : ''}
+                </div>
+              </div>
+              
               <button
-                className="w-full rounded-lg border border-blue-500 bg-blue-500/10 px-3 py-2 text-sm text-blue-300 hover:bg-blue-500/20 disabled:opacity-60 transition-all"
-                disabled={props.disabled || isApprovePending || isApproveConfirming}
-                onClick={() =>
-                  writeApprove({
-                    address: props.token,
-                    abi: erc20Abi,
-                    functionName: "approve",
-                    args: [props.market, maxUint256]
-                  })
-                }
-              >
-                {isApprovePending || isApproveConfirming ? "⏳" : "Approve"}
-              </button>
-            ) : (
-              <button
-                className="w-full rounded-lg bg-gradient-to-r from-red-500 to-red-600 px-3 py-2 text-sm font-medium text-white hover:from-red-600 hover:to-red-700 disabled:opacity-60 transition-all shadow-lg shadow-red-500/20"
-                disabled={props.disabled || isPending || isConfirming || tokensInWei === 0n}
+                className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-3.5 text-base font-semibold text-white hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-60 transition-all shadow-lg shadow-emerald-500/25"
+                disabled={props.disabled || isPending || isConfirming || bnbInWei === 0n}
                 onClick={() =>
                   writeContract({
                     address: props.market,
                     abi: bondingCurveMarketAbi,
-                    functionName: "sell",
-                    args: [tokensInWei, minBnbOut, address!]
+                    functionName: "buy",
+                    args: [address!, minTokensOut],
+                    value: bnbInWei
                   })
                 }
               >
-                {isPending || isConfirming ? "⏳" : "Sell"}
+                {isPending || isConfirming ? "⏳ Processing..." : "Buy"}
               </button>
-            )}
-          </div>
+            </>
+          ) : (
+            // Sell Section
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs text-neutral-400">You sell</span>
+                <span className="text-xs text-neutral-300">Balance: {formatBn(userTokenBalance, 18, 6)}</span>
+              </div>
+              <div className="relative mb-4">
+                <input
+                  className="w-full rounded-xl border border-white/10 bg-neutral-950 px-4 py-3 pr-24 text-lg outline-none focus:border-red-500/50 transition-all"
+                  value={tokensInDisplayValue}
+                  onChange={(e) => setTokensIn(e.target.value)}
+                  placeholder="0.0"
+                  type="number"
+                  step="any"
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                  <span className="text-sm font-medium text-neutral-300">TOKEN</span>
+                  <div className="h-6 w-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center">
+                    <span className="text-xs">🪙</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Percentage Buttons */}
+              <div className="grid grid-cols-4 gap-2 mb-4">
+                {["25", "50", "75", "100"].map((pct) => (
+                  <button
+                    key={pct}
+                    onClick={() => {
+                      const percentage = Number(pct) / 100
+                      const amount = userTokenBalance * BigInt(Math.floor(percentage * 10000)) / 10000n
+                      setTokensIn(formatUnits(amount, 18))
+                    }}
+                    className="rounded-xl bg-white/5 px-3 py-2 text-sm text-neutral-300 hover:bg-white/10 transition-all border border-white/10"
+                  >
+                    {pct}%
+                  </button>
+                ))}
+              </div>
+              
+              {/* You Get */}
+              <div className="mb-4 p-3 rounded-xl bg-white/5 border border-white/5">
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="text-neutral-400">You get</span>
+                </div>
+                <div className="text-lg font-semibold text-neutral-200">
+                  {formatBn(bnbOut, 18, 6)} BNB
+                </div>
+              </div>
+              
+              {needsApprove ? (
+                <button
+                  className="w-full rounded-xl border-2 border-blue-500 bg-blue-500/10 px-4 py-3.5 text-base font-semibold text-blue-300 hover:bg-blue-500/20 disabled:opacity-60 transition-all"
+                  disabled={props.disabled || isApprovePending || isApproveConfirming}
+                  onClick={() =>
+                    writeApprove({
+                      address: props.token,
+                      abi: erc20Abi,
+                      functionName: "approve",
+                      args: [props.market, maxUint256]
+                    })
+                  }
+                >
+                  {isApprovePending || isApproveConfirming ? "⏳ Approving..." : "Approve"}
+                </button>
+              ) : (
+                <button
+                  className="w-full rounded-xl bg-gradient-to-r from-red-500 to-red-600 px-4 py-3.5 text-base font-semibold text-white hover:from-red-600 hover:to-red-700 disabled:opacity-60 transition-all shadow-lg shadow-red-500/25"
+                  disabled={props.disabled || isPending || isConfirming || tokensInWei === 0n}
+                  onClick={() =>
+                    writeContract({
+                      address: props.market,
+                      abi: bondingCurveMarketAbi,
+                      functionName: "sell",
+                      args: [tokensInWei, minBnbOut, address!]
+                    })
+                  }
+                >
+                  {isPending || isConfirming ? "⏳ Processing..." : "Sell"}
+                </button>
+              )}
+            </>
+          )}
         </div>
       </div>
 
