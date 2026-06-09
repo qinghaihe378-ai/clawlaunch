@@ -197,10 +197,7 @@ export default function TokenPage() {
     </div>
   )
 
-  const targetRaiseLabel =
-    info.targetRaise === 2000000000000000000n ? "2" : info.targetRaise === 3000000000000000000n ? "3" : undefined
-  
-  // Calculate progress percentage safely
+  // Calculate progress percentage safely (after info guard)
   const progressPct = useMemo(() => {
     if (info.migrated) return 100
     if (info.targetRaise <= 0n) return 0
@@ -214,6 +211,9 @@ export default function TokenPage() {
       return 0
     }
   }, [info.marketBnb, info.targetRaise, info.migrated])
+
+  const targetRaiseLabel =
+    info.targetRaise === 2000000000000000000n ? "2" : info.targetRaise === 3000000000000000000n ? "3" : undefined
 
   return (
     <div className="space-y-3">
