@@ -158,9 +158,9 @@ contract MemeTokenFactory is Ownable {
 
         require(
             targetRaiseOverride == 0 || 
-            targetRaiseOverride == 6 ether || 
-            targetRaiseOverride == 16.5 ether ||
-            targetRaiseOverride == 10000000000000000, // 0.01 BNB for testing
+            targetRaiseOverride == 2 ether || 
+            targetRaiseOverride == 3 ether ||
+            targetRaiseOverride == 1 ether,
             "target"
         );
         uint256 tr = targetRaiseOverride == 0 ? targetRaise : targetRaiseOverride;
