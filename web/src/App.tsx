@@ -86,6 +86,31 @@ function Header() {
               >
                 💼 持仓
               </Link>
+              {address ? (
+                <button
+                  type="button"
+                  className="glass-card rounded-2xl px-5 py-4 text-base font-semibold text-neutral-200 hover:bg-white/10 transition-all duration-200 text-left"
+                  onClick={() => { disconnect(); setMenuOpen(false); }}
+                >
+                  🔓 断开连接 {shortAddr(address)}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="glass-card rounded-2xl px-5 py-4 text-base font-semibold text-white bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 transition-all duration-200 text-left disabled:opacity-60"
+                  disabled={isPending || (!hasInjected && !isInIframe)}
+                  onClick={() => {
+                    if (!hasInjected && isInIframe) {
+                      requestTopOpen()
+                      return
+                    }
+                    connectInjected()
+                    setMenuOpen(false)
+                  }}
+                >
+                  {isPending ? "⏳ 连接中…" : "🔗 连接钱包"}
+                </button>
+              )}
             </div>
           </div>
         </div>,
@@ -225,33 +250,6 @@ function Header() {
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 group-hover:w-full transition-all duration-300"></span>
             </Link>
           </nav>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {address ? (
-            <button
-              type="button"
-              className="rounded-xl border border-white/10 bg-gradient-to-r from-blue-500/10 to-purple-500/10 px-4 py-2 text-sm font-medium text-neutral-200 hover:from-blue-500/20 hover:to-purple-500/20 transition-all duration-200 glow-effect"
-              onClick={() => disconnect()}
-            >
-              {shortAddr(address)}
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="rounded-xl border border-white/10 bg-gradient-to-r from-blue-500 to-purple-500 px-4 py-2 text-sm font-medium text-white hover:from-blue-600 hover:to-purple-600 disabled:opacity-60 transition-all duration-200 shadow-lg shadow-blue-500/25"
-              disabled={isPending || (!hasInjected && !isInIframe)}
-              onClick={() => {
-                if (!hasInjected && isInIframe) {
-                  requestTopOpen()
-                  return
-                }
-                connectInjected()
-              }}
-            >
-              {hasInjected ? "连接钱包" : isInIframe ? "全屏打开" : "等待钱包"}
-            </button>
-          )}
         </div>
       </div>
       {connectError && (
