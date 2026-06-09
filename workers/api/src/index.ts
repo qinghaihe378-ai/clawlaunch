@@ -11,7 +11,7 @@ app.use('/*', cors())
 // 合约地址配置（⚠️ 每次重新部署合约后需要更新这里）
 const DEPLOYMENTS = {
   56: { // BSC Mainnet
-    factory: '0xc411364F32f01fe8b281c0510B09d9d1943eC1F2',
+    factory: '0xF51129367038D7505631C700fCb02ECE88877D0a', // 新地址
     wbnb: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
     router: '0x10ED43C718714eb63d5aA57B78B54704E256024E'
   },

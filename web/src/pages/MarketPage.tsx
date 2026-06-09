@@ -170,9 +170,9 @@ export default function MarketPage() {
       }
     },
     placeholderData: (previousData) => previousData,
-    staleTime: 15_000,
-    refetchInterval: 30_000,
-    refetchOnWindowFocus: false
+    staleTime: 0, // 数据立即过期，每次都会重新请求
+    refetchInterval: 10_000, // 每10秒自动刷新
+    refetchOnWindowFocus: true, // 切换窗口时刷新
   })
 
   const rows = useMemo(() => {

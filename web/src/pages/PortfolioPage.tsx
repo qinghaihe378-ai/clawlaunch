@@ -1,16 +1,92 @@
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
 import { Link } from "react-router-dom"
-import { useAccount, useChainId, usePublicClient } from "wagmi"
+import { useAccount, useChainId, usePublicClient, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi"
 
 import { getFactoryAddress } from "../contracts/addresses"
-import { erc20Abi, memeTokenFactoryAbi } from "../contracts/abi"
+import { erc20Abi, memeTokenFactoryAbi, memeTokenTaxAbi } from "../contracts/abi"
 import { formatBn } from "../lib/format"
+
+function PortfolioItem(props: {
+  token: `0x${string}`
+  symbol: string
+  balance: bigint
+  address: `0x${string}`
+  claimingToken: `0x${string}` | null
+  setClaimingToken: (token: `0x${string}` | null) => void
+  writeContract: any
+  isClaimPending: boolean
+  isClaimConfirming: boolean
+}) {
+  const { data: withdrawableDividend } = useReadContract({
+    address: props.token,
+    abi: memeTokenTaxAbi,
+    functionName: "withdrawableDividendOf",
+    args: [props.address],
+    query: { enabled: !!props.address }
+  })
+  const withdrawable = (withdrawableDividend as bigint | undefined) ?? 0n
+  const hasDividend = withdrawable > 0n
+
+  const isClaiming = props.claimingToken === props.token
+  const isDisabled = props.isClaimPending || props.isClaimConfirming || isClaiming
+
+  return (
+    <div key={props.token} className="grid grid-cols-[1fr,140px,90px] items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors duration-200">
+      <div className="min-w-0">
+        <div className="text-sm font-semibold">{props.symbol}</div>
+        <div className="truncate text-[11px] text-neutral-500">{props.token}</div>
+      </div>
+      <div className="text-right text-sm font-medium text-neutral-200">{formatBn(props.balance)}</div>
+      <div className="flex justify-end gap-2">
+        {hasDividend && (
+          <button
+            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-all ${
+              isClaiming
+                ? "bg-yellow-500/30 text-yellow-300 cursor-wait"
+                : "bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30"
+            }`}
+            disabled={isDisabled}
+            onClick={() => {
+              props.setClaimingToken(props.token)
+              props.writeContract({
+                address: props.token,
+                abi: memeTokenTaxAbi,
+                functionName: "claimDividend",
+                args: []
+              })
+            }}
+          >
+            {isClaiming ? "⏳" : `💰 ${formatBn(withdrawable)}`}
+          </button>
+        )}
+        <Link
+          to={`/token/${props.token}`}
+          className="rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-4 py-2 text-xs font-medium text-white hover:from-blue-600 hover:to-purple-600 transition-all duration-200 shadow-lg shadow-blue-500/25"
+        >
+          去交易
+        </Link>
+      </div>
+    </div>
+  )
+}
 
 export default function PortfolioPage() {
   const { address } = useAccount()
   const chainId = useChainId()
   const publicClient = usePublicClient()
   const factory = getFactoryAddress(chainId)
+  const [claimingToken, setClaimingToken] = useState<`0x${string}` | null>(null)
+
+  const { writeContract, isPending: isClaimPending, isSuccess: isClaimSuccess } = useWriteContract()
+  const { isLoading: isClaimConfirming } = useWaitForTransactionReceipt({
+    hash: isClaimSuccess ? undefined : undefined
+  })
+
+  // 重置 claimingToken 当交易成功后
+  if (isClaimSuccess && claimingToken) {
+    setClaimingToken(null)
+  }
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["portfolio", chainId, address],
@@ -94,18 +170,18 @@ export default function PortfolioPage() {
         <div className="overflow-hidden glass-card rounded-2xl">
           <div className="divide-y divide-white/5">
             {(data ?? []).map((x) => (
-              <div key={x.token} className="grid grid-cols-[1fr,140px,90px] items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors duration-200">
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold">{x.symbol}</div>
-                  <div className="truncate text-[11px] text-neutral-500">{x.token}</div>
-                </div>
-                <div className="text-right text-sm font-medium text-neutral-200">{formatBn(x.balance)}</div>
-                <div className="flex justify-end">
-                  <Link to={`/token/${x.token}`} className="rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 px-4 py-2 text-xs font-medium text-white hover:from-blue-600 hover:to-purple-600 transition-all duration-200 shadow-lg shadow-blue-500/25">
-                    去交易
-                  </Link>
-                </div>
-              </div>
+              <PortfolioItem
+                key={x.token}
+                token={x.token}
+                symbol={x.symbol}
+                balance={x.balance}
+                address={address!}
+                claimingToken={claimingToken}
+                setClaimingToken={setClaimingToken}
+                writeContract={writeContract}
+                isClaimPending={isClaimPending}
+                isClaimConfirming={isClaimConfirming}
+              />
             ))}
             {(data?.length ?? 0) === 0 && !isLoading ? (
               <div className="px-4 py-12 text-center text-sm text-neutral-400">📭 暂无持仓</div>
