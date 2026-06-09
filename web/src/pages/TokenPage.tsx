@@ -453,7 +453,7 @@ function TradePanel(props: TradePanelProps) {
       // 延迟一下确保链上状态已更新
       const timer = setTimeout(() => {
         void refetchAllowance()
-      }, 1500)
+      }, 500)
       return () => clearTimeout(timer)
     }
   }, [isApproveSuccess, refetchAllowance])
