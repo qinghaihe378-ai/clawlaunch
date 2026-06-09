@@ -181,7 +181,6 @@ export default function MarketPage() {
     return list.filter((t) => {
       if (status === "dex" && !t.migrated) return false
       if (status === "sale" && t.migrated) return false
-      if (raise === "6" && t.targetRaise !== 6000000000000000000n) return false
       if (raise === "3" && t.targetRaise !== 3000000000000000000n) return false
       if (raise === "2" && t.targetRaise !== 2000000000000000000n) return false
       if (template === "tax" && t.templateId !== 1n) return false
