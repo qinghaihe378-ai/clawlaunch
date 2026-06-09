@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import {
   useAccount,
+  useBalance,
   useChainId,
   usePublicClient,
   useReadContract,
@@ -416,6 +417,23 @@ function TradePanel(props: TradePanelProps) {
 
   const needsApprove = address ? ((allowance as bigint | undefined) ?? 0n) < tokensInWei : false
 
+  // 获取 BNB 余额和代币余额
+  const { data: bnbBalance } = useBalance({
+    address,
+    query: { enabled: !!address }
+  })
+  
+  const { data: tokenBalance } = useReadContract({
+    address: props.token,
+    abi: erc20Abi,
+    functionName: "balanceOf",
+    args: [address ?? "0x0000000000000000000000000000000000000000"],
+    query: { enabled: !!address }
+  })
+  
+  const userBnbBalance = (bnbBalance?.value as bigint | undefined) ?? 0n
+  const userTokenBalance = (tokenBalance as bigint | undefined) ?? 0n
+
   const { writeContract, data: txHash, isPending, error } = useWriteContract()
   const { isLoading: isConfirming } = useWaitForTransactionReceipt({ hash: txHash })
 
@@ -466,82 +484,87 @@ function TradePanel(props: TradePanelProps) {
             })
           }
         >
-          {isDividendPending || isDividendConfirming ? "⏳" : `💰 Claim ${formatBn(withdrawable)} BNB`}
+          {isDividendPending || isDividendConfirming ? "" : `💰 Claim ${formatBn(withdrawable)} BNB`}
         </button>
       )}
 
-      {/* Buy */}
-      <div className="mb-2">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-emerald-400">Buy</span>
-          <span className="text-xs text-neutral-500">Get {formatBn(tokensOut)}</span>
-        </div>
-        <input
-          className="w-full rounded border border-white/10 bg-neutral-950 px-3 py-2 text-sm outline-none focus:border-emerald-500/50 mb-2"
-          value={bnbIn}
-          onChange={(e) => setBnbIn(e.target.value)}
-          placeholder="BNB amount"
-        />
-        <button
-          className="w-full rounded bg-emerald-500 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-60 transition-all"
-          disabled={props.disabled || isPending || isConfirming || bnbInWei === 0n}
-          onClick={() =>
-            writeContract({
-              address: props.market,
-              abi: bondingCurveMarketAbi,
-              functionName: "buy",
-              args: [address!, minTokensOut],
-              value: bnbInWei
-            })
-          }
-        >
-          {isPending || isConfirming ? "⏳" : "Buy"}
-        </button>
-      </div>
+      {/* Buy & Sell Tabs */}
+      <div className="mb-4">
+        <div className="flex gap-2">
+          {/* Buy Section */}
+          <div className="flex-1 glass-card rounded-xl p-3 border-emerald-500/30">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-emerald-400">Buy</span>
+              <span className="text-[10px] text-neutral-500">Balance: {formatBn(userBnbBalance, 18, 6)} BNB</span>
+            </div>
+            <input
+              className="w-full rounded-lg border border-white/10 bg-neutral-950 px-3 py-2 text-sm outline-none focus:border-emerald-500/50 mb-2"
+              value={bnbIn}
+              onChange={(e) => setBnbIn(e.target.value)}
+              placeholder="BNB amount"
+            />
+            <button
+              className="w-full rounded-lg bg-gradient-to-r from-emerald-500 to-emerald-600 px-3 py-2 text-sm font-medium text-white hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-60 transition-all shadow-lg shadow-emerald-500/20"
+              disabled={props.disabled || isPending || isConfirming || bnbInWei === 0n}
+              onClick={() =>
+                writeContract({
+                  address: props.market,
+                  abi: bondingCurveMarketAbi,
+                  functionName: "buy",
+                  args: [address!, minTokensOut],
+                  value: bnbInWei
+                })
+              }
+            >
+              {isPending || isConfirming ? "⏳" : "Buy"}
+            </button>
+          </div>
 
-      {/* Sell */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium text-red-400">Sell</span>
-          <span className="text-xs text-neutral-500">Get {formatBn(bnbOut)} BNB</span>
+          {/* Sell Section */}
+          <div className="flex-1 glass-card rounded-xl p-3 border-red-500/30">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-red-400">Sell</span>
+              <span className="text-[10px] text-neutral-500">Balance: {formatBn(userTokenBalance, 18, 6)}</span>
+            </div>
+            <input
+              className="w-full rounded-lg border border-white/10 bg-neutral-950 px-3 py-2 text-sm outline-none focus:border-red-500/50 mb-2"
+              value={tokensIn}
+              onChange={(e) => setTokensIn(e.target.value)}
+              placeholder="Token amount"
+            />
+            {needsApprove ? (
+              <button
+                className="w-full rounded-lg border border-blue-500 bg-blue-500/10 px-3 py-2 text-sm text-blue-300 hover:bg-blue-500/20 disabled:opacity-60 transition-all"
+                disabled={props.disabled || isPending || isConfirming}
+                onClick={() =>
+                  writeContract({
+                    address: props.token,
+                    abi: erc20Abi,
+                    functionName: "approve",
+                    args: [props.market, maxUint256]
+                  })
+                }
+              >
+                {isPending || isConfirming ? "⏳" : "Approve"}
+              </button>
+            ) : (
+              <button
+                className="w-full rounded-lg bg-gradient-to-r from-red-500 to-red-600 px-3 py-2 text-sm font-medium text-white hover:from-red-600 hover:to-red-700 disabled:opacity-60 transition-all shadow-lg shadow-red-500/20"
+                disabled={props.disabled || isPending || isConfirming || tokensInWei === 0n}
+                onClick={() =>
+                  writeContract({
+                    address: props.market,
+                    abi: bondingCurveMarketAbi,
+                    functionName: "sell",
+                    args: [tokensInWei, minBnbOut, address!]
+                  })
+                }
+              >
+                {isPending || isConfirming ? "⏳" : "Sell"}
+              </button>
+            )}
+          </div>
         </div>
-        <input
-          className="w-full rounded border border-white/10 bg-neutral-950 px-3 py-2 text-sm outline-none focus:border-red-500/50 mb-2"
-          value={tokensIn}
-          onChange={(e) => setTokensIn(e.target.value)}
-          placeholder="Token amount"
-        />
-        {needsApprove ? (
-          <button
-            className="w-full rounded border border-blue-500 bg-blue-500/10 px-3 py-2 text-sm text-blue-300 hover:bg-blue-500/20 disabled:opacity-60 transition-all"
-            disabled={props.disabled || isPending || isConfirming}
-            onClick={() =>
-              writeContract({
-                address: props.token,
-                abi: erc20Abi,
-                functionName: "approve",
-                args: [props.market, maxUint256]
-              })
-            }
-          >
-            {isPending || isConfirming ? "⏳" : "Approve"}
-          </button>
-        ) : (
-          <button
-            className="w-full rounded bg-red-500 px-3 py-2 text-sm font-medium text-white hover:bg-red-600 disabled:opacity-60 transition-all"
-            disabled={props.disabled || isPending || isConfirming || tokensInWei === 0n}
-            onClick={() =>
-              writeContract({
-                address: props.market,
-                abi: bondingCurveMarketAbi,
-                functionName: "sell",
-                args: [tokensInWei, minBnbOut, address!]
-              })
-            }
-          >
-            {isPending || isConfirming ? "⏳" : "Sell"}
-          </button>
-        )}
       </div>
 
       {error && (
