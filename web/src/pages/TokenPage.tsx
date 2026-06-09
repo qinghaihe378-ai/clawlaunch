@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { useParams } from "react-router-dom"
 import { useQuery } from "@tanstack/react-query"
 import {
@@ -443,19 +443,20 @@ function TradePanel(props: TradePanelProps) {
     isPending: isApprovePending,
     error: approveError
   } = useWriteContract()
-  const { isLoading: isApproveConfirming } = useWaitForTransactionReceipt({ hash: approveTxHash })
+  const { isLoading: isApproveConfirming, isSuccess: isApproveSuccess } = useWaitForTransactionReceipt({ 
+    hash: approveTxHash
+  })
 
   // 监听 approve 交易完成后重新查询 allowance
-  useWatchContractEvent({
-    address: props.token,
-    abi: erc20Abi,
-    eventName: "Approval",
-    args: { owner: address ?? undefined },
-    onLogs() {
-      // 强制刷新 allowance 查询
-      void refetchAllowance()
+  useEffect(() => {
+    if (isApproveSuccess) {
+      // 延迟一下确保链上状态已更新
+      const timer = setTimeout(() => {
+        void refetchAllowance()
+      }, 1500)
+      return () => clearTimeout(timer)
     }
-  })
+  }, [isApproveSuccess, refetchAllowance])
 
   const {
     writeContract: writeDividend,
