@@ -354,6 +354,8 @@ function TradePanel(props: TradePanelProps) {
   const [tokensIn, setTokensIn] = useState("")
   const [slippagePct, setSlippagePct] = useState("1")
   const [activeTab, setActiveTab] = useState<'buy' | 'sell'>('buy')
+  const [showSlippageModal, setShowSlippageModal] = useState(false)
+  const [tempSlippage, setTempSlippage] = useState(Number(slippagePct))
 
   const bnbInWei = useMemo(() => {
     try {
@@ -478,26 +480,22 @@ function TradePanel(props: TradePanelProps) {
 
   return (
     <div className="glass-card rounded-2xl p-4">
-      {/* Slippage */}
-      <div className="mb-3">
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-xs text-neutral-400">Slippage</label>
-          <span className="text-xs text-neutral-300">{slippagePct}%</span>
-        </div>
-        <div className="flex gap-1.5">
-          {["0.5", "1", "2", "5"].map((val) => (
-            <button
-              key={val}
-              onClick={() => setSlippagePct(val)}
-              className={`flex-1 rounded px-2 py-1.5 text-xs transition-all ${
-                slippagePct === val
-                  ? "bg-blue-500 text-white"
-                  : "bg-white/5 text-neutral-400 hover:bg-white/10"
-              }`}
-            >
-              {val}%
-            </button>
-          ))}
+      {/* Slippage Settings Button */}
+      <div className="mb-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setTempSlippage(Number(slippagePct))
+              setShowSlippageModal(true)
+            }}
+            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-all text-neutral-400 hover:text-neutral-200"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </button>
+          <span className="text-sm text-neutral-300">Slippage: {slippagePct}%</span>
         </div>
       </div>
 
@@ -737,6 +735,74 @@ function TradePanel(props: TradePanelProps) {
             const shortMsg = msg.split('\n')[0].substring(0, 100)
             return `❌ ${shortMsg}`
           })()}
+        </div>
+      )}
+
+      {/* Slippage Settings Modal */}
+      {showSlippageModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="glass-card rounded-2xl p-6 w-full max-w-md border-white/10">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-white">最大滑点: {tempSlippage}%</h3>
+              <button
+                onClick={() => setShowSlippageModal(false)}
+                className="p-2 rounded-lg hover:bg-white/10 transition-all text-neutral-400"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <p className="text-sm text-neutral-400 mb-6">
+              这是你下单交易时愿意接受的最大滑点。
+            </p>
+            
+            {/* Slider */}
+            <div className="mb-6">
+              <input
+                type="range"
+                min="0.1"
+                max="50"
+                step="0.1"
+                value={tempSlippage}
+                onChange={(e) => setTempSlippage(Number(e.target.value))}
+                className="w-full h-2 bg-neutral-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
+              />
+              <div className="flex justify-between mt-2 text-xs text-neutral-500">
+                <span>0.1%</span>
+                <span>50%</span>
+              </div>
+            </div>
+            
+            {/* Quick Presets */}
+            <div className="grid grid-cols-4 gap-2 mb-6">
+              {["0.5", "1", "2", "5"].map((val) => (
+                <button
+                  key={val}
+                  onClick={() => setTempSlippage(Number(val))}
+                  className={`rounded-lg px-3 py-2 text-sm transition-all ${
+                    tempSlippage === Number(val)
+                      ? "bg-blue-500 text-white"
+                      : "bg-white/5 text-neutral-400 hover:bg-white/10"
+                  }`}
+                >
+                  {val}%
+                </button>
+              ))}
+            </div>
+            
+            {/* Save Button */}
+            <button
+              onClick={() => {
+                setSlippagePct(String(tempSlippage))
+                setShowSlippageModal(false)
+              }}
+              className="w-full rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-3 text-base font-semibold text-white hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg shadow-blue-500/25"
+            >
+              保存设置
+            </button>
+          </div>
         </div>
       )}
     </div>
