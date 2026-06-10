@@ -84,19 +84,37 @@ async function readTokenBase(version: FactoryVersion, chainId: SupportedChainId,
   })) as unknown as TokenInfoResult
 
   const market = info[1]
-  const [name, symbol, migrated, targetRaise, quote] = (await publicClient.multicall({
+  
+  // First, get basic info and migration status
+  const [name, symbol, migrated, targetRaise] = (await publicClient.multicall({
     contracts: [
       { address: token, abi: erc20Abi, functionName: "name" },
       { address: token, abi: erc20Abi, functionName: "symbol" },
       { address: market, abi: bondingCurveMarketAbi, functionName: "migrated" },
-      { address: market, abi: bondingCurveMarketAbi, functionName: "targetRaise" },
-      { address: market, abi: bondingCurveMarketAbi, functionName: "quoteBuy", args: [10n ** 17n] }
+      { address: market, abi: bondingCurveMarketAbi, functionName: "targetRaise" }
     ]
-  })) as [{ result: string }, { result: string }, { result: boolean }, { result: bigint }, { result: readonly [bigint, bigint] }]
+  })) as [{ result: string }, { result: string }, { result: boolean }, { result: bigint }]
 
   const marketBnb = await publicClient.getBalance({ address: market })
-  const tokensOut = quote.result[0]
-  const quotePriceBnbPerToken = tokensOut > 0n ? (10n ** 17n) / tokensOut : undefined
+  
+  // Only call quoteBuy for non-migrated tokens to avoid revert
+  let quotePriceBnbPerToken: bigint | undefined
+  if (!migrated.result) {
+    try {
+      const quote = await publicClient.readContract({
+        address: market,
+        abi: bondingCurveMarketAbi,
+        functionName: "quoteBuy",
+        args: [10n ** 17n]
+      }) as readonly [bigint, bigint]
+      
+      const tokensOut = quote[0]
+      quotePriceBnbPerToken = tokensOut > 0n ? (10n ** 17n) / tokensOut : undefined
+    } catch (error) {
+      console.warn(`[readTokenBase] quoteBuy failed for ${token}:`, error)
+      quotePriceBnbPerToken = undefined
+    }
+  }
 
   return {
     version,
