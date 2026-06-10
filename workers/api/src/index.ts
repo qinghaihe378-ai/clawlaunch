@@ -22,10 +22,15 @@ const DEPLOYMENTS = {
   }
 }
 
-// RPC URL 配置
+// RPC URL 配置（多个备用节点）
 const RPC_URLS = {
-  56: 'https://bsc-dataseed.bnbchain.org',
-  97: 'https://data-seed-prebsc-1-s1.bnbchain.org:8545'
+  56: [
+    'https://bsc-dataseed.bnbchain.org',
+    'https://bsc-dataseed1.bnbchain.org',
+    'https://bsc-dataseed2.bnbchain.org',
+    'https://bsc-dataseed3.bnbchain.org'
+  ],
+  97: ['https://data-seed-prebsc-1-s1.bnbchain.org:8545']
 }
 
 // Factory ABI（简化版，只包含需要的方法）
@@ -112,7 +117,8 @@ const BSCSCAN_API_KEY = 'W1KIQ5A6ASG2YER3BUKGJ36UR32E8QMEY2'
 
 // Helper: 获取 Public Client
 function getPublicClient(chainId: number) {
-  const rpcUrl = RPC_URLS[chainId as keyof typeof RPC_URLS] || RPC_URLS[56]
+  const rpcUrls = RPC_URLS[chainId as keyof typeof RPC_URLS] || RPC_URLS[56]
+  const rpcUrl = Array.isArray(rpcUrls) ? rpcUrls[0] : rpcUrls
   const chain = chainId === 97 ? bscTestnet : bsc
   
   return createPublicClient({
@@ -235,23 +241,37 @@ app.get('/api/tokens', async (c) => {
 
           // Get market BNB balance via direct RPC call
           try {
-            const rpcUrl = RPC_URLS[chainId as keyof typeof RPC_URLS] || RPC_URLS[56]
-            const rpcResponse = await fetch(rpcUrl, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                jsonrpc: '2.0',
-                method: 'eth_getBalance',
-                params: [marketAddress, 'latest'],
-                id: 1
-              })
-            })
-            const rpcData = await rpcResponse.json() as any
-            if (rpcData.result) {
-              marketBnb = BigInt(rpcData.result)
-              console.log(`[DEBUG] Market balance for ${marketAddress}:`, marketBnb.toString())
-            } else {
-              console.error(`RPC error for ${marketAddress}:`, rpcData)
+            const rpcUrls = RPC_URLS[chainId as keyof typeof RPC_URLS] || RPC_URLS[56]
+            const urls = Array.isArray(rpcUrls) ? rpcUrls : [rpcUrls]
+            
+            let success = false
+            for (const rpcUrl of urls) {
+              try {
+                const rpcResponse = await fetch(rpcUrl, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    method: 'eth_getBalance',
+                    params: [marketAddress, 'latest'],
+                    id: 1
+                  })
+                })
+                const rpcData = await rpcResponse.json() as any
+                if (rpcData.result) {
+                  marketBnb = BigInt(rpcData.result)
+                  console.log(`[DEBUG] Market balance for ${marketAddress}:`, marketBnb.toString())
+                  success = true
+                  break
+                }
+              } catch (e) {
+                console.warn(`RPC ${rpcUrl} failed, trying next...`)
+                continue
+              }
+            }
+            
+            if (!success) {
+              console.error(`All RPC URLs failed for ${marketAddress}`)
               marketBnb = 0n
             }
           } catch (balanceError) {
