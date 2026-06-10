@@ -448,10 +448,10 @@ function TxWatcher(props: { txHash: `0x${string}`; templateId: number; onToken: 
 // 自动验证代币合约（简化版：所有代币都尝试验证）
 async function autoVerifyToken(token: string, chainId: number, templateId: number) {
   try {
-    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://clawlaunch.qinghaihe378.workers.dev/api'
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
     // 使用用户选择的 templateId 进行验证
     const response = await fetch(
-      `${apiBaseUrl}/api/verify-token?address=${token}&templateId=${templateId}&chainId=${chainId}`
+      `${apiBaseUrl}/verify-token?address=${token}&templateId=${templateId}&chainId=${chainId}`
     )
     const data = await response.json()
     

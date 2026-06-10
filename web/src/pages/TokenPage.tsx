@@ -143,9 +143,9 @@ export default function TokenPage() {
     setVerifyMessage('Submitting verification...')
     
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://clawlaunch.qinghaihe378.workers.dev/api'
+      const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || '/api'
       const response = await fetch(
-        `${apiBaseUrl}/api/verify-token?address=${info.token}&templateId=${info.templateId}&chainId=${chainId}`
+        `${apiBaseUrl}/verify-token?address=${info.token}&templateId=${info.templateId}&chainId=${chainId}`
       )
       const data = await response.json()
       

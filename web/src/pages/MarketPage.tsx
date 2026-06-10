@@ -86,8 +86,8 @@ function apiBaseUrl() {
     return url
   }
   if (import.meta.env.DEV) return "http://localhost:3001/api"
-  // Production fallback: Always use Cloudflare Workers API
-  return "https://clawlaunch.qinghaihe378.workers.dev/api"
+  // Production fallback: Use Vercel API routes
+  return "/api"
 }
 
 // Helper function to safely construct API URLs
