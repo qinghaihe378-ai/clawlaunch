@@ -233,11 +233,27 @@ app.get('/api/tokens', async (c) => {
             functionName: 'targetRaise'
           })
 
-          // Get market BNB balance
+          // Get market BNB balance via direct RPC call
           try {
-            // @ts-ignore - Cloudflare Workers viem type issue
-            marketBnb = await client.getBalance({ address: marketAddress })
-            console.log(`[DEBUG] Market balance for ${marketAddress}:`, marketBnb.toString())
+            const rpcUrl = RPC_URLS[chainId as keyof typeof RPC_URLS] || RPC_URLS[56]
+            const rpcResponse = await fetch(rpcUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'eth_getBalance',
+                params: [marketAddress, 'latest'],
+                id: 1
+              })
+            })
+            const rpcData = await rpcResponse.json() as any
+            if (rpcData.result) {
+              marketBnb = BigInt(rpcData.result)
+              console.log(`[DEBUG] Market balance for ${marketAddress}:`, marketBnb.toString())
+            } else {
+              console.error(`RPC error for ${marketAddress}:`, rpcData)
+              marketBnb = 0n
+            }
           } catch (balanceError) {
             console.error(`Failed to get balance for ${marketAddress}:`, balanceError)
             marketBnb = 0n
