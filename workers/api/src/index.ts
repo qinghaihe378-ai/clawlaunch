@@ -166,12 +166,6 @@ app.get('/api/factories', async (c) => {
   }
 })
 
-// 代币黑名单（需要过滤掉的测试代币）
-const TOKEN_BLACKLIST = new Set([
-  '0xdbF4Ad560054E6063CA90c41302a2EE0dF302dFE'.toLowerCase(),
-  '0x683f3065AF2b5F61478CA2273De4677e0fd6056A'.toLowerCase()
-])
-
 // /api/tokens
 app.get('/api/tokens', async (c) => {
   try {
@@ -279,9 +273,8 @@ app.get('/api/tokens', async (c) => {
           }
         }
 
-        // 检查是否在黑名单中
-        if (!TOKEN_BLACKLIST.has(tokenAddress.toLowerCase())) {
-          allRows.push({
+        // No blacklist filtering - include all tokens
+        allRows.push({
             token: tokenAddress,
             market: info[1],
             creator: info[2],
@@ -303,7 +296,6 @@ app.get('/api/tokens', async (c) => {
             targetRaise,
             quotePriceBnbPerToken
           })
-        }
       } catch (e) {
         console.error(`Error fetching token ${i}:`, e)
       }
