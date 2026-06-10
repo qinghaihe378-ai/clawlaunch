@@ -233,10 +233,27 @@ app.get('/api/tokens', async (c) => {
             functionName: 'targetRaise'
           })
 
-          // Get market BNB balance via RPC (Cloudflare Workers supports this)
+          // Get market BNB balance via direct RPC call
           try {
-            marketBnb = await client.getBalance({ address: marketAddress })
-            console.log(`[DEBUG] Market balance for ${marketAddress}:`, marketBnb.toString())
+            const rpcUrl = RPC_URLS[chainId as keyof typeof RPC_URLS] || RPC_URLS[56]
+            const response = await fetch(rpcUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'eth_getBalance',
+                params: [marketAddress, 'latest'],
+                id: 1
+              })
+            })
+            const data = await response.json()
+            if (data.result) {
+              marketBnb = BigInt(data.result)
+              console.log(`[DEBUG] Market balance for ${marketAddress}:`, marketBnb.toString())
+            } else {
+              console.error(`RPC error for ${marketAddress}:`, data)
+              marketBnb = 0n
+            }
           } catch (balanceError) {
             console.error(`Failed to get balance for ${marketAddress}:`, balanceError)
             marketBnb = 0n
