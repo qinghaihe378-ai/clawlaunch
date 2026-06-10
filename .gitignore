@@ -23,3 +23,7 @@ web/tsconfig.tsbuildinfo
 
 # ⚠️ 禁止在根目录创建 api/ 文件夹（后端必须在 workers/api/）
 api/
+
+# ⚠️ 禁止在 web/ 目录下创建 api/ 或 functions/ 文件夹（Vercel 会识别为 Serverless Functions）
+web/api/
+web/functions/
