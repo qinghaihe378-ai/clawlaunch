@@ -4,9 +4,9 @@
 
 ### 1. 部署架构（不可更改）
 ```
-✅ 前端 = web/ 目录 → Vercel（纯静态文件，无任何后端代码）
-✅ 后端 = workers/api/ 目录 → Cloudflare Workers
-❌ 禁止：Vercel 上有任何后端 API（Serverless Functions）
+✅ 前端 = web/ 目录 → Vercel（纯静态文件 + /api/tokens Serverless Function）
+✅ 后端 = workers/api/ 目录 → Cloudflare Workers（除 /api/tokens 外的其他 API）
+❌ 禁止：Vercel 上有其他后端 API（除了 /api/tokens）
 ```
 
 ### 2. 文件夹结构规则

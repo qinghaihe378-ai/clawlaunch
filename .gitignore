@@ -25,5 +25,7 @@ web/tsconfig.tsbuildinfo
 api/
 
 # ⚠️ 禁止在 web/ 目录下创建 api/ 或 functions/ 文件夹（Vercel 会识别为 Serverless Functions）
+# 例外：web/api/tokens/ 是允许的（用于提供代币列表 API）
 web/api/
+!web/api/tokens/
 web/functions/

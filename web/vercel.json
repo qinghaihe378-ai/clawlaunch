@@ -1,5 +1,6 @@
 {
   "rewrites": [
+    { "source": "/api/tokens", "destination": "/api/tokens" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
