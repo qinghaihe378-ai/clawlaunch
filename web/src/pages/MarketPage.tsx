@@ -77,7 +77,14 @@ type ApiTokensResponse = {
 
 function apiBaseUrl() {
   const envUrl = import.meta.env.VITE_API_BASE_URL as string | undefined
-  if (envUrl?.trim()) return envUrl.trim().replace(/\/$/, "")
+  if (envUrl?.trim()) {
+    const url = envUrl.trim().replace(/\/$/, "")
+    // 如果 URL 不包含 /api，自动添加
+    if (!url.endsWith('/api')) {
+      return `${url}/api`
+    }
+    return url
+  }
   if (import.meta.env.DEV) return "http://localhost:3001/api"
   // Fallback to /api if no env var is set
   return "/api"
@@ -127,7 +134,10 @@ function mapApiTokenRow(row: ApiTokenRow): TokenRow {
     migrated: row.migrated,
     marketBnb: parseBigInt(row.marketBnb),
     targetRaise: parseBigInt(row.targetRaise),
-    quotePriceBnbPerToken: row.quotePriceBnbPerToken ? parseBigInt(row.quotePriceBnbPerToken) : undefined
+    // Only set quotePrice if it's a non-zero value
+    quotePriceBnbPerToken: (row.quotePriceBnbPerToken && row.quotePriceBnbPerToken !== "0") 
+      ? parseBigInt(row.quotePriceBnbPerToken) 
+      : undefined
   }
 }
 
@@ -165,7 +175,7 @@ export default function MarketPage() {
         rows: payload.data.list.map(mapApiTokenRow),
         total: payload.data.total,
         visible: payload.data.list.length,
-        hasMore: payload.data.total > payload.data.list.length,
+        hasMore: visibleCount < payload.data.total,
         factory: payload.data.factory
       }
     },
