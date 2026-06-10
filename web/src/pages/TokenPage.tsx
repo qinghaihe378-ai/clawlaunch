@@ -84,8 +84,19 @@ export default function TokenPage() {
           { address: market, abi: bondingCurveMarketAbi, functionName: "migrated" as const },
           { address: market, abi: bondingCurveMarketAbi, functionName: "targetRaise" as const }
         ]
-      })) as unknown as [{ result: string }, { result: string }, { result: boolean }, { result: bigint }]
+      })) as unknown as [
+        { result?: string; error?: Error },
+        { result?: string; error?: Error },
+        { result?: boolean; error?: Error },
+        { result?: bigint; error?: Error }
+      ]
+      
       const marketBnb = await publicClient.getBalance({ address: market })
+      
+      // 检查 targetRaise 是否有效
+      if (!targetRaise.result) {
+        console.warn('[TokenPage] targetRaise is undefined or zero, using default value')
+      }
 
       return {
         token: token!,
@@ -102,10 +113,10 @@ export default function TokenPage() {
         holderShareBps: asBigInt(r[12]),
         liquidityShareBps: asBigInt(r[13]),
         buybackShareBps: asBigInt(r[14]),
-        name: name.result,
-        symbol: symbol.result,
-        migrated: migrated.result,
-        targetRaise: targetRaise.result,
+        name: name.result || '',
+        symbol: symbol.result || '',
+        migrated: migrated.result || false,
+        targetRaise: targetRaise.result || 0n,
         marketBnb
       }
     },
