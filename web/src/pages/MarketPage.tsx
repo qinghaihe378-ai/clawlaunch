@@ -86,8 +86,8 @@ function apiBaseUrl() {
     return url
   }
   if (import.meta.env.DEV) return "http://localhost:3001/api"
-  // Fallback to /api if no env var is set
-  return "/api"
+  // Production fallback: Always use Cloudflare Workers API
+  return "https://clawlaunch.qinghaihe378.workers.dev/api"
 }
 
 // Helper function to safely construct API URLs
