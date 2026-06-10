@@ -330,6 +330,13 @@ app.get('/api/tokens', async (c) => {
     const filteredTotal = allRows.length
     console.log(`[DEBUG] Total tokens: ${total}, Filtered: ${filteredTotal}`)
     
+    // 按 marketBnb 降序排序
+    allRows.sort((a, b) => {
+      const aBnb = BigInt(a.marketBnb)
+      const bBnb = BigInt(b.marketBnb)
+      return aBnb > bBnb ? -1 : aBnb < bBnb ? 1 : 0
+    })
+    
     const startIndex = (page - 1) * pageSize
     const endIndex = Math.min(startIndex + pageSize, filteredTotal)
     
