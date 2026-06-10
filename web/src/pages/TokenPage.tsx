@@ -86,6 +86,15 @@ export default function TokenPage() {
         ]
       })) as unknown as [{ result: string }, { result: string }, { result: boolean }, { result: bigint }]
       const marketBnb = await publicClient.getBalance({ address: market })
+      
+      console.log('[TokenPage] Debug info:', {
+        token,
+        market,
+        marketBnb: marketBnb.toString(),
+        marketBnbFormatted: formatBn(marketBnb),
+        targetRaise: targetRaise.result?.toString(),
+        targetRaiseFormatted: targetRaise.result ? formatBn(targetRaise.result) : 'undefined'
+      })
 
       return {
         token: token!,
