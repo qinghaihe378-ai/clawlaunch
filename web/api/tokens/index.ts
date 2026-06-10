@@ -4,7 +4,7 @@ import { bsc } from 'viem/chains'
 
 // Redis 缓存配置（可选）
 const REDIS_URL = process.env.REDIS_URL
-const CACHE_TTL = parseInt(process.env.CACHE_TTL_SECONDS || '60') // 默认缓存 60 秒
+const CACHE_TTL = parseInt(process.env.CACHE_TTL_SECONDS || '300') // 默认缓存 5 分钟
 
 // 简单的内存缓存（如果没有 Redis）
 const memoryCache = new Map<string, { data: any; timestamp: number }>()
