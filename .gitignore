@@ -20,3 +20,6 @@ contracts/.home
 web/tsconfig.tsbuildinfo
 .vercel
 .env*
+
+# ⚠️ 禁止在根目录创建 api/ 文件夹（后端必须在 workers/api/）
+api/
