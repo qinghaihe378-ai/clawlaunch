@@ -11,7 +11,7 @@ app.use('/*', cors())
 // 合约地址配置（⚠️ 每次重新部署合约后需要更新这里）
 const DEPLOYMENTS = {
   56: { // BSC Mainnet
-    factory: '0x6066e43888D8779322e9ab5dF151b26402807711', // 最新部署
+    factory: '0x6066e43888D8779322e9ab5dF151b26402807711', // 当前使用的 Factory
     wbnb: '0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c',
     router: '0x10ED43C718714eb63d5aA57B78B54704E256024E'
   },
@@ -166,6 +166,12 @@ app.get('/api/factories', async (c) => {
   }
 })
 
+// 代币黑名单（需要过滤掉的测试代币）
+const TOKEN_BLACKLIST = new Set([
+  '0xdbF4Ad560054E6063CA90c41302a2EE0dF302dFE'.toLowerCase(),
+  '0x683f3065AF2b5F61478CA2273De4677e0fd6056A'.toLowerCase()
+])
+
 // /api/tokens
 app.get('/api/tokens', async (c) => {
   try {
@@ -182,20 +188,21 @@ app.get('/api/tokens', async (c) => {
     }
 
     // 获取代币总数
+    console.log('[DEBUG] Starting token query, chainId:', chainId, 'factory:', factoryAddress)
+    // @ts-ignore - Cloudflare Workers viem type issue
     const totalLength = await client.readContract({
       address: factoryAddress as `0x${string}`,
       abi: FACTORY_ABI,
       functionName: 'allTokensLength'
     })
-
     const total = Number(totalLength)
-    const startIndex = (page - 1) * pageSize
-    const endIndex = Math.min(startIndex + pageSize, total)
-
-    // 获取代币列表
-    const rows = []
-    for (let i = startIndex; i < endIndex; i++) {
+    console.log('[DEBUG] Total tokens from factory:', total)
+    
+    // 获取所有代币（不分页，然后过滤）
+    const allRows = []
+    for (let i = 0; i < total; i++) {
       try {
+        // @ts-ignore - Cloudflare Workers viem type issue
         const tokenAddress = await client.readContract({
           address: factoryAddress as `0x${string}`,
           abi: FACTORY_ABI,
@@ -203,6 +210,7 @@ app.get('/api/tokens', async (c) => {
           args: [BigInt(i)]
         })
 
+        // @ts-ignore - Cloudflare Workers viem type issue
         const info = await client.readContract({
           address: factoryAddress as `0x${string}`,
           abi: FACTORY_ABI,
@@ -217,31 +225,49 @@ app.get('/api/tokens', async (c) => {
         let targetRaise = 0n
 
         try {
+          // @ts-ignore - Cloudflare Workers viem type issue
           migrated = await client.readContract({
             address: marketAddress,
             abi: MARKET_ABI,
             functionName: 'migrated'
           })
 
+          // @ts-ignore - Cloudflare Workers viem type issue
           targetRaise = await client.readContract({
             address: marketAddress,
             abi: MARKET_ABI,
             functionName: 'targetRaise'
           })
 
-          const reserves = await client.readContract({
-            address: marketAddress,
-            abi: MARKET_ABI,
-            functionName: 'getReserves'
-          })
-          marketBnb = reserves[1] // bnbReserve
+          // 通过 BSCScan API 获取 Market 合约的 BNB 余额
+          // 因为 Cloudflare Workers 不支持 getBalance()，且合约没有 getReserves() 函数
+          try {
+            const bscscanUrl = `https://api.bscscan.com/api?module=account&action=balance&address=${marketAddress}&apikey=${BSCSCAN_API_KEY}`
+            console.log(`[DEBUG] Calling BSCScan API: ${bscscanUrl}`)
+            const response = await fetch(bscscanUrl)
+            console.log(`[DEBUG] BSCScan API response status:`, response.status)
+            const data = await response.json()
+            console.log(`[DEBUG] BSCScan API response:`, JSON.stringify(data).substring(0, 200))
+            if (data.status === '1' && data.result) {
+              marketBnb = BigInt(data.result)
+              console.log(`[DEBUG] BSCScan balance for ${marketAddress}:`, marketBnb.toString())
+            } else {
+              console.error(`BSCScan API error for ${marketAddress}:`, data)
+              marketBnb = 0n
+            }
+          } catch (bscscanError) {
+            console.error(`BSCScan API failed for ${marketAddress}:`, bscscanError)
+            marketBnb = 0n
+          }
         } catch (e) {
-          // 忽略市场查询错误
+          console.error(`Error fetching market info for ${tokenAddress}:`, e)
+          // 即使出错，也要继续处理这个代币，不要中断整个循环
         }
 
         // 计算价格
         let quotePriceBnbPerToken = undefined
         if (marketBnb > 0n) {
+          // @ts-ignore - Cloudflare Workers viem type issue
           const tokenReserve = await client.readContract({
             address: marketAddress,
             abi: MARKET_ABI,
@@ -253,32 +279,45 @@ app.get('/api/tokens', async (c) => {
           }
         }
 
-        rows.push({
-          token: tokenAddress,
-          market: info[1],
-          creator: info[2],
-          name: '', // 需要从 ERC20 查询
-          symbol: '',
-          description: info[4],
-          logo: info[5],
-          telegram: info[6],
-          twitter: info[7],
-          website: info[8],
-          templateId: info[9],
-          taxBps: info[10],
-          burnShareBps: info[11],
-          holderShareBps: info[12],
-          liquidityShareBps: info[13],
-          buybackShareBps: info[14],
-          migrated,
-          marketBnb,
-          targetRaise,
-          quotePriceBnbPerToken
-        })
+        // 检查是否在黑名单中
+        if (!TOKEN_BLACKLIST.has(tokenAddress.toLowerCase())) {
+          allRows.push({
+            token: tokenAddress,
+            market: info[1],
+            creator: info[2],
+            name: '', // 需要从 ERC20 查询
+            symbol: '',
+            description: info[4],
+            logo: info[5],
+            telegram: info[6],
+            twitter: info[7],
+            website: info[8],
+            templateId: info[9],
+            taxBps: info[10],
+            burnShareBps: info[11],
+            holderShareBps: info[12],
+            liquidityShareBps: info[13],
+            buybackShareBps: info[14],
+            migrated,
+            marketBnb,
+            targetRaise,
+            quotePriceBnbPerToken
+          })
+        }
       } catch (e) {
         console.error(`Error fetching token ${i}:`, e)
       }
     }
+
+    // 过滤后的总数
+    const filteredTotal = allRows.length
+    console.log(`[DEBUG] Total tokens: ${total}, Filtered: ${filteredTotal}`)
+    
+    const startIndex = (page - 1) * pageSize
+    const endIndex = Math.min(startIndex + pageSize, filteredTotal)
+    
+    // 分页
+    const rows = allRows.slice(startIndex, endIndex)
 
     // 并行查询代币名称和符号
     await Promise.all(rows.map(async (row) => {
@@ -305,9 +344,9 @@ app.get('/api/tokens', async (c) => {
 
     return c.json(ok({
       list: serializeData(rows),
-      total,
+      total: filteredTotal, // 使用过滤后的总数
       visible: rows.length,
-      hasMore: endIndex < total
+      hasMore: endIndex < filteredTotal // 使用过滤后的总数判断是否有更多
     }))
   } catch (error: any) {
     console.error('[List Tokens Error]', error)
@@ -378,10 +417,23 @@ app.get('/api/tokens/:address', async (c) => {
       })
     ])
 
-    // 计算价格
+    // 计算价格（使用 getReserves 查询 tokenReserve）
     let quotePriceBnbPerToken = undefined
-    if (marketBnb > 0n && tokenReserve > 0n) {
-      quotePriceBnbPerToken = (marketBnb * BigInt(1e18)) / tokenReserve
+    if (marketBnb > 0n) {
+      try {
+        // @ts-ignore - Cloudflare Workers viem type issue
+        const reserves = await client.readContract({
+          address: marketAddress,
+          abi: MARKET_ABI,
+          functionName: 'getReserves'
+        })
+        const tokenReserve = reserves[0]
+        if (tokenReserve > 0n) {
+          quotePriceBnbPerToken = (marketBnb * BigInt(1e18)) / tokenReserve
+        }
+      } catch (e) {
+        // 忽略价格计算错误
+      }
     }
 
     const result = {
