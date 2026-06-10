@@ -178,7 +178,7 @@ export default function TokenPage() {
   const progressPct = useMemo(() => {
     if (!info) return 0
     if (info.migrated) return 100
-    if (info.targetRaise <= 0n) return 0
+    if (!info.targetRaise || info.targetRaise <= 0n) return 0
     
     try {
       const ratio = (info.marketBnb * 10000n) / info.targetRaise
@@ -331,7 +331,7 @@ export default function TokenPage() {
               <div className="flex items-center justify-between text-sm mb-2">
                 <span className="text-neutral-400">Progress</span>
               <span className="font-medium">
-                {formatBn(info.marketBnb)} / {formatBn(info.targetRaise)} BNB
+                {formatBn(info.marketBnb)} / {info.targetRaise ? formatBn(info.targetRaise) : 'N/A'} BNB
               </span>
             </div>
             <div className="h-2 w-full overflow-hidden rounded-full bg-neutral-800">

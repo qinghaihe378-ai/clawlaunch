@@ -204,9 +204,9 @@ export default function MarketPage() {
     })
   }, [data, q, raise, status, template])
 
-  function pct(marketBnb: bigint, targetRaise: bigint, migrated: boolean) {
+  function pct(marketBnb: bigint, targetRaise: bigint | undefined, migrated: boolean) {
     if (migrated) return 100 // 已迁移显示100%
-    if (targetRaise <= 0n) return 0
+    if (!targetRaise || targetRaise <= 0n) return 0
     const p = (marketBnb * 10000n) / targetRaise
     const clipped = p > 10000n ? 10000n : p
     return Number(clipped) / 100
