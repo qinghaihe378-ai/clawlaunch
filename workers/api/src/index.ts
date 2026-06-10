@@ -233,24 +233,12 @@ app.get('/api/tokens', async (c) => {
             functionName: 'targetRaise'
           })
 
-          // 通过 BSCScan API 获取 Market 合约的 BNB 余额
-          // 因为 Cloudflare Workers 不支持 getBalance()，且合约没有 getReserves() 函数
+          // Get market BNB balance via RPC (Cloudflare Workers supports this)
           try {
-            const bscscanUrl = `https://api.bscscan.com/api?module=account&action=balance&address=${marketAddress}&apikey=${BSCSCAN_API_KEY}`
-            console.log(`[DEBUG] Calling BSCScan API: ${bscscanUrl}`)
-            const response = await fetch(bscscanUrl)
-            console.log(`[DEBUG] BSCScan API response status:`, response.status)
-            const data = await response.json()
-            console.log(`[DEBUG] BSCScan API response:`, JSON.stringify(data).substring(0, 200))
-            if (data.status === '1' && data.result) {
-              marketBnb = BigInt(data.result)
-              console.log(`[DEBUG] BSCScan balance for ${marketAddress}:`, marketBnb.toString())
-            } else {
-              console.error(`BSCScan API error for ${marketAddress}:`, data)
-              marketBnb = 0n
-            }
-          } catch (bscscanError) {
-            console.error(`BSCScan API failed for ${marketAddress}:`, bscscanError)
+            marketBnb = await client.getBalance({ address: marketAddress })
+            console.log(`[DEBUG] Market balance for ${marketAddress}:`, marketBnb.toString())
+          } catch (balanceError) {
+            console.error(`Failed to get balance for ${marketAddress}:`, balanceError)
             marketBnb = 0n
           }
         } catch (e) {
