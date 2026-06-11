@@ -411,14 +411,14 @@ export default function MarketPage() {
         )}
         {error && <div className="glass-card rounded-2xl border-red-500/30 bg-red-500/10 p-5 text-sm text-red-300">❌ {String(error)}</div>}
 
-        <div className="w-full overflow-hidden rounded-2xl">
-          <div className="space-y-2 p-2">
+        <div className="w-full overflow-hidden rounded-2xl flex justify-center">
+          <div className="space-y-4 p-2 w-full max-w-md">
             {rows.map((t) => {
               const p = pct(t.marketBnb, t.targetRaise, t.migrated)
               return (
                 <div
                   key={t.token}
-                  className="group w-full rounded-xl bg-neutral-900/80 border border-cyan-500/20 hover:border-cyan-500/40 transition-all duration-200 px-3 py-2.5"
+                  className="group w-full rounded-xl bg-neutral-900/80 border border-cyan-500/20 hover:border-cyan-500/40 transition-all duration-200 px-3 py-4"
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2">
@@ -464,8 +464,8 @@ export default function MarketPage() {
                       </Link>
                     </div>
 
-                    <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                      <div className="rounded-lg bg-cyan-900/20 p-2 border border-cyan-500/20">
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                      <div className="rounded-lg bg-cyan-900/20 p-2.5 border border-cyan-500/20">
                         <div className="text-[10px] text-cyan-300/60 mb-0.5">价格</div>
                         <div className="font-semibold text-cyan-300">
                           {t.quotePriceBnbPerToken ? 
@@ -484,7 +484,7 @@ export default function MarketPage() {
                           : "-"}
                         </div>
                       </div>
-                      <div className="rounded-lg bg-cyan-900/20 p-2 border border-cyan-500/20 text-right">
+                      <div className="rounded-lg bg-cyan-900/20 p-2.5 border border-cyan-500/20 text-right">
                         <div className="text-[10px] text-cyan-300/60 mb-0.5">募资</div>
                         <div className="font-semibold text-cyan-300">
                           {formatBn(t.marketBnb)} / {formatBn(t.targetRaise)}
@@ -492,7 +492,7 @@ export default function MarketPage() {
                       </div>
                     </div>
 
-                    <div className="mt-2">
+                    <div className="mt-3">
                       <div className="h-1.5 w-full overflow-hidden rounded-full bg-gradient-to-r from-neutral-800 to-neutral-900">
                         <div
                           className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-sky-400 to-fuchsia-400 transition-all duration-500"
