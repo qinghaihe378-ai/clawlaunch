@@ -1,10 +1,24 @@
 import hre from "hardhat";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 const { ethers } = hre;
 
-async function main() {
-  console.log(" 开始监听 TokenCreated 事件并自动验证...\n");
+// ES Module 中获取 __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-  const factoryAddress = "0x6066e43888D8779322e9ab5dF151b26402807711";
+async function main() {
+  console.log("🚀 开始监听 TokenCreated 事件并自动验证...\n");
+
+  // 从 deployments 文件读取 Factory 地址（自动更新）
+  const deploymentPath = path.resolve(__dirname, "../deployments/bsc.json");
+  const deployment = JSON.parse(fs.readFileSync(deploymentPath, "utf-8"));
+  const factoryAddress = deployment.factory;
+  
+  console.log(`📍 Factory 地址: ${factoryAddress}`);
+  console.log(`📄 配置文件: ${deploymentPath}\n`);
+  
   const factory = await ethers.getContractAt("MemeTokenFactory", factoryAddress);
 
   // 获取当前区块号作为起始点

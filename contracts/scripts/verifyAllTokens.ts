@@ -57,18 +57,25 @@ async function main() {
       if (token.templateId === 0) {
         await verifyContract({
           address: token.token,
-          constructorArguments: [name, symbol, totalSupply, token.market, factoryAddress],
+          constructorArguments: [name, symbol, totalSupply, factoryAddress, factoryAddress],
           contract: "contracts/MemeToken.sol:MemeToken"
         })
       } else {
+        const treasury = await factory.treasury();
+        const wbnb = await factory.wbnb();
+        const router = await factory.router();
+        
         await verifyContract({
           address: token.token,
           constructorArguments: [
             name,
             symbol,
             totalSupply,
-            token.market,
             factoryAddress,
+            factoryAddress,
+            treasury,
+            wbnb,
+            router,
             token.taxBps,
             token.burnShareBps,
             token.holderShareBps,
@@ -81,16 +88,26 @@ async function main() {
       
       // 验证 Market 合约
       console.log(`\n  验证 Market 合约: ${token.market}`)
+      const locker = await factory.locker();
+      const targetRaise = token.targetRaiseOverride === "0" ? 
+        await factory.targetRaise() : 
+        BigInt(token.targetRaiseOverride);
+      
       await verifyContract({
         address: token.market,
         constructorArguments: [
           token.token,
-          factoryAddress,
-          "0xa3678bD8A3454072dBe247bF536E99D093fB3A75", // treasury
-          token.templateId === 0 ? 3000000000000000000n : 
-                 token.targetRaise === "2000000000000000000" ? 2000000000000000000n :
-                 token.targetRaise === "3000000000000000000" ? 3000000000000000000n :
-                 1000000000000000000n
+          token.creator,
+          await factory.treasury(),
+          targetRaise,
+          await factory.buyFeeBps(),
+          await factory.sellFeeBps(),
+          await factory.virtualBnbReserve(),
+          (totalSupply * 2000n) / 10000n, // liquidityTokenReserve
+          await factory.antiSnipingDelaySeconds(),
+          await factory.wbnb(),
+          await factory.router(),
+          locker
         ],
         contract: "contracts/BondingCurveMarket.sol:BondingCurveMarket"
       })
