@@ -25,10 +25,20 @@ const DEPLOYMENTS = {
 // RPC URL 配置（多个备用节点）
 const RPC_URLS = {
   56: [
+    // BSC 官方节点
     'https://bsc-dataseed.bnbchain.org',
     'https://bsc-dataseed1.bnbchain.org',
     'https://bsc-dataseed2.bnbchain.org',
-    'https://bsc-dataseed3.bnbchain.org'
+    'https://bsc-dataseed3.bnbchain.org',
+    'https://bsc-dataseed4.bnbchain.org',
+    'https://bsc-dataseed5.bnbchain.org',
+    'https://bsc-dataseed6.bnbchain.org',
+    'https://bsc-dataseed7.bnbchain.org',
+    'https://bsc-dataseed8.bnbchain.org',
+    'https://bsc-dataseed9.bnbchain.org',
+    // 第三方备用节点
+    'https://rpc.ankr.com/bsc',
+    'https://bsc-mainnet.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161'
   ],
   97: ['https://data-seed-prebsc-1-s1.bnbchain.org:8545']
 }
@@ -283,7 +293,7 @@ app.get('/api/tokens', async (c) => {
           // 即使出错，也要继续处理这个代币，不要中断整个循环
         }
 
-        // 计算价格
+        // 计算价格（使用字符串避免精度丢失）
         let quotePriceBnbPerToken = undefined
         if (marketBnb > 0n) {
           // @ts-ignore - Cloudflare Workers viem type issue
@@ -294,7 +304,9 @@ app.get('/api/tokens', async (c) => {
           }).then(r => r[0])
           
           if (tokenReserve > 0n) {
-            quotePriceBnbPerToken = (marketBnb * BigInt(1e18)) / tokenReserve
+            // 使用更高精度计算：先放大再除法
+            const priceScaled = (marketBnb * BigInt(1e36)) / tokenReserve
+            quotePriceBnbPerToken = priceScaled.toString()
           }
         }
 
@@ -453,7 +465,8 @@ app.get('/api/tokens/:address', async (c) => {
         })
         const tokenReserve = reserves[0]
         if (tokenReserve > 0n) {
-          quotePriceBnbPerToken = (marketBnb * BigInt(1e18)) / tokenReserve
+          const priceScaled = (marketBnb * BigInt(1e36)) / tokenReserve
+          quotePriceBnbPerToken = priceScaled.toString()
         }
       } catch (e) {
         // 忽略价格计算错误
