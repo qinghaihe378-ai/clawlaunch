@@ -79,7 +79,7 @@ npx hardhat run scripts/verifyLatestToken.ts --network bsc
 
 ```
 开始验证最新创建的代币合约
-Factory 地址: 0xc411364F32f01fe8b281c0510B09d9d1943eC1F2
+Factory 地址: 0x6066e43888D8779322e9ab5dF151b26402807711
 
 查询最近的 TokenCreated 事件...
   代币地址: 0xABC123...
@@ -125,7 +125,7 @@ Factory 地址: 0xc411364F32f01fe8b281c0510B09d9d1943eC1F2
 
 - **BSCScan**: https://bscscan.com
 - **Sourcify**: https://sourcify.dev
-- **Factory 合约**: `0xc411364F32f01fe8b281c0510B09d9d1943eC1F2`
+- **Factory 合约**: `0x6066e43888D8779322e9ab5dF151b26402807711`
 - **TaxDeployer**: `0x86B6dDa4CeB1aDC71bBB68671e329b5F7DcE658e`
 
 ---
