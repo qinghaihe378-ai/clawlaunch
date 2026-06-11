@@ -411,7 +411,7 @@ export default function MarketPage() {
         )}
         {error && <div className="glass-card rounded-2xl border-red-500/30 bg-red-500/10 p-5 text-sm text-red-300">❌ {String(error)}</div>}
 
-        <div className="w-full overflow-hidden rounded-2xl glass-card">
+        <div className="w-full overflow-hidden rounded-2xl">
           <div className="space-y-2 p-2">
             {rows.map((t) => {
               const p = pct(t.marketBnb, t.targetRaise, t.migrated)
@@ -467,7 +467,22 @@ export default function MarketPage() {
                     <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                       <div className="rounded-lg bg-white/5 p-2 border border-white/5">
                         <div className="text-[10px] text-neutral-500 mb-0.5">价格</div>
-                        <div className="font-semibold text-neutral-200">{t.quotePriceBnbPerToken ? formatBn(t.quotePriceBnbPerToken, 18, 10) : "-"}</div>
+                        <div className="font-semibold text-neutral-200">
+                          {t.quotePriceBnbPerToken ? 
+                            (() => {
+                              // quotePriceBnbPerToken 是放大 10^18 倍的值，需要除以 10^18
+                              try {
+                                const price = BigInt(t.quotePriceBnbPerToken)
+                                const integerPart = price / BigInt(1e18)
+                                const decimalPart = price % BigInt(1e18)
+                                const decimalStr = decimalPart.toString().padStart(18, '0').slice(0, 10)
+                                return `${integerPart}.${decimalStr}`
+                              } catch {
+                                return '-'
+                              }
+                            })()
+                          : "-"}
+                        </div>
                       </div>
                       <div className="rounded-lg bg-white/5 p-2 border border-white/5 text-right">
                         <div className="text-[10px] text-neutral-500 mb-0.5">募资</div>

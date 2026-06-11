@@ -89,9 +89,10 @@ async function main() {
       // 验证 Market 合约
       console.log(`\n  验证 Market 合约: ${token.market}`)
       const locker = await factory.locker();
-      const targetRaise = token.targetRaiseOverride === "0" ? 
+      const targetRaiseOverride = token.targetRaiseOverride || "0";
+      const targetRaise = targetRaiseOverride === "0" ? 
         await factory.targetRaise() : 
-        BigInt(token.targetRaiseOverride);
+        BigInt(targetRaiseOverride);
       
       await verifyContract({
         address: token.market,

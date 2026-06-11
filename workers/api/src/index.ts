@@ -102,6 +102,15 @@ const MARKET_ABI = [{
   ],
   "stateMutability": "view",
   "type": "function"
+}, {
+  "inputs": [{"internalType": "uint256", "name": "bnbIn", "type": "uint256"}],
+  "name": "quoteBuy",
+  "outputs": [
+    {"internalType": "uint256", "name": "tokensOut", "type": "uint256"},
+    {"internalType": "uint256", "name": "fee", "type": "uint256"}
+  ],
+  "stateMutability": "view",
+  "type": "function"
 }]
 
 // ERC20 ABI
@@ -208,8 +217,11 @@ app.get('/api/tokens', async (c) => {
     const total = Number(totalLength)
     console.log('[DEBUG] Total tokens from factory:', total)
     
-    // 获取所有代币（不分页，然后过滤）
+    // 获取所有代币（使用并行查询提高性能）
     const allRows = []
+    
+    // 先获取所有代币地址
+    const tokenAddresses = []
     for (let i = 0; i < total; i++) {
       try {
         // @ts-ignore - Cloudflare Workers viem type issue
@@ -219,7 +231,17 @@ app.get('/api/tokens', async (c) => {
           functionName: 'allTokens',
           args: [BigInt(i)]
         })
-
+        tokenAddresses.push(tokenAddress)
+      } catch (e) {
+        console.error(`Error fetching token address ${i}:`, e)
+      }
+    }
+    
+    console.log(`[DEBUG] Fetched ${tokenAddresses.length} token addresses`)
+    
+    // 并行查询每个代币的详细信息
+    const tokenPromises = tokenAddresses.map(async (tokenAddress, index) => {
+      try {
         // @ts-ignore - Cloudflare Workers viem type issue
         const info = await client.readContract({
           address: factoryAddress as `0x${string}`,
@@ -270,73 +292,77 @@ app.get('/api/tokens', async (c) => {
                 const rpcData = await rpcResponse.json() as any
                 if (rpcData.result) {
                   marketBnb = BigInt(rpcData.result)
-                  console.log(`[DEBUG] Market balance for ${marketAddress}:`, marketBnb.toString())
                   success = true
                   break
                 }
               } catch (e) {
-                console.warn(`RPC ${rpcUrl} failed, trying next...`)
                 continue
               }
             }
             
             if (!success) {
-              console.error(`All RPC URLs failed for ${marketAddress}`)
               marketBnb = 0n
             }
           } catch (balanceError) {
-            console.error(`Failed to get balance for ${marketAddress}:`, balanceError)
             marketBnb = 0n
           }
         } catch (e) {
-          console.error(`Error fetching market info for ${tokenAddress}:`, e)
-          // 即使出错，也要继续处理这个代币，不要中断整个循环
+          // 即使出错，也要继续处理这个代币
         }
 
-        // 计算价格（使用字符串避免精度丢失）
-        let quotePriceBnbPerToken = undefined
-        if (marketBnb > 0n) {
-          // @ts-ignore - Cloudflare Workers viem type issue
-          const tokenReserve = await client.readContract({
-            address: marketAddress,
-            abi: MARKET_ABI,
-            functionName: 'getReserves'
-          }).then(r => r[0])
-          
-          if (tokenReserve > 0n) {
-            // 使用更高精度计算：先放大再除法
-            const priceScaled = (marketBnb * BigInt(1e36)) / tokenReserve
-            quotePriceBnbPerToken = priceScaled.toString()
+        // 计算价格（使用 quoteBuy 函数，与本地后端一致）
+        let quotePriceBnbPerToken: string | undefined = undefined
+        if (!migrated) {
+          try {
+            // @ts-ignore - Cloudflare Workers viem type issue
+            const quote = await client.readContract({
+              address: marketAddress,
+              abi: MARKET_ABI,
+              functionName: 'quoteBuy',
+              args: [10n ** 17n]
+            }) as readonly [bigint, bigint]
+            
+            const tokensOut = quote[0]
+            // 计算价格：使用更大的精度避免整数除法结果为0
+            if (tokensOut > 0n) {
+              const priceScaled = (10n ** 35n) / tokensOut; // 放大 10^18 倍
+              quotePriceBnbPerToken = priceScaled.toString();
+            }
+          } catch (e) {
+            // quoteBuy 失败，忽略
           }
         }
 
-        // No blacklist filtering - include all tokens
-        allRows.push({
-            token: tokenAddress,
-            market: info[1],
-            creator: info[2],
-            name: '', // 需要从 ERC20 查询
-            symbol: '',
-            description: info[4],
-            logo: info[5],
-            telegram: info[6],
-            twitter: info[7],
-            website: info[8],
-            templateId: info[9],
-            taxBps: info[10],
-            burnShareBps: info[11],
-            holderShareBps: info[12],
-            liquidityShareBps: info[13],
-            buybackShareBps: info[14],
-            migrated,
-            marketBnb,
-            targetRaise,
-            quotePriceBnbPerToken
-          })
+        return {
+          token: tokenAddress,
+          market: info[1],
+          creator: info[2],
+          name: '', // 需要从 ERC20 查询
+          symbol: '',
+          description: info[4],
+          logo: info[5],
+          telegram: info[6],
+          twitter: info[7],
+          website: info[8],
+          templateId: info[9],
+          taxBps: info[10],
+          burnShareBps: info[11],
+          holderShareBps: info[12],
+          liquidityShareBps: info[13],
+          buybackShareBps: info[14],
+          migrated,
+          marketBnb,
+          targetRaise,
+          quotePriceBnbPerToken
+        }
       } catch (e) {
-        console.error(`Error fetching token ${i}:`, e)
+        console.error(`Error fetching token ${index}:`, e)
+        return null
       }
-    }
+    })
+    
+    const results = await Promise.all(tokenPromises)
+    allRows.push(...results.filter(r => r !== null))
 
     // 过滤后的总数
     const filteredTotal = allRows.length
