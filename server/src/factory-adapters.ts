@@ -109,7 +109,15 @@ async function readTokenBase(version: FactoryVersion, chainId: SupportedChainId,
       }) as readonly [bigint, bigint]
       
       const tokensOut = quote[0]
-      quotePriceBnbPerToken = tokensOut > 0n ? (10n ** 17n) / tokensOut : undefined
+      // 计算价格：使用更大的精度避免整数除法结果为0
+      // 价格 = (0.1 BNB * 10^18) / tokensOut，结果单位为 wei
+      // 为了保留精度，我们返回 (0.1 BNB * 10^36) / tokensOut，这样前端可以除以 10^18 得到正确价格
+      if (tokensOut > 0n) {
+        const priceScaled = (10n ** 35n) / tokensOut; // 放大 10^18 倍
+        quotePriceBnbPerToken = priceScaled;
+      } else {
+        quotePriceBnbPerToken = undefined;
+      }
     } catch (error) {
       console.warn(`[readTokenBase] quoteBuy failed for ${token}:`, error)
       quotePriceBnbPerToken = undefined
