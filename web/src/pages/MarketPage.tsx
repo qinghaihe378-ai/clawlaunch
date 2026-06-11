@@ -418,7 +418,7 @@ export default function MarketPage() {
               return (
                 <div
                   key={t.token}
-                  className="group w-full rounded-xl glass-card hover:bg-white/10 transition-all duration-200 px-3 py-2.5"
+                  className="group w-full rounded-xl bg-neutral-900/80 border border-cyan-500/20 hover:border-cyan-500/40 transition-all duration-200 px-3 py-2.5"
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2">
@@ -438,10 +438,10 @@ export default function MarketPage() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <div className="truncate text-sm font-bold">
+                            <div className="truncate text-sm font-bold text-white">
                               {t.name}
                             </div>
-                            <span className="text-xs text-neutral-400 shrink-0">{t.symbol}</span>
+                            <span className="text-xs text-cyan-300 shrink-0">{t.symbol}</span>
                             {t.templateId === 1n ? (
                               <div className="rounded bg-sky-500/20 px-1.5 py-0.5 text-[10px] font-medium text-sky-300 border border-sky-500/30">税</div>
                             ) : null}
@@ -456,7 +456,7 @@ export default function MarketPage() {
                               <div className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-300 border border-amber-500/30">Bonding</div>
                             )}
                           </div>
-                          <div className="mt-0.5 truncate text-xs text-neutral-500">{t.description || 'No description'}</div>
+                          <div className="mt-0.5 truncate text-xs text-cyan-200/70">{t.description || 'No description'}</div>
                         </div>
                       </Link>
                       <Link to={`/token/${t.token}`} className="shrink-0 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 px-3 py-1.5 text-xs font-semibold text-white hover:from-blue-600 hover:to-purple-600 transition-all duration-200 shadow-md shadow-blue-500/20">
@@ -465,9 +465,9 @@ export default function MarketPage() {
                     </div>
 
                     <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                      <div className="rounded-lg bg-white/5 p-2 border border-white/5">
-                        <div className="text-[10px] text-neutral-500 mb-0.5">价格</div>
-                        <div className="font-semibold text-neutral-200">
+                      <div className="rounded-lg bg-cyan-900/20 p-2 border border-cyan-500/20">
+                        <div className="text-[10px] text-cyan-300/60 mb-0.5">价格</div>
+                        <div className="font-semibold text-cyan-300">
                           {t.quotePriceBnbPerToken ? 
                             (() => {
                               // quotePriceBnbPerToken 是放大 10^18 倍的值，需要除以 10^18
@@ -484,9 +484,9 @@ export default function MarketPage() {
                           : "-"}
                         </div>
                       </div>
-                      <div className="rounded-lg bg-white/5 p-2 border border-white/5 text-right">
-                        <div className="text-[10px] text-neutral-500 mb-0.5">募资</div>
-                        <div className="font-semibold text-neutral-200">
+                      <div className="rounded-lg bg-cyan-900/20 p-2 border border-cyan-500/20 text-right">
+                        <div className="text-[10px] text-cyan-300/60 mb-0.5">募资</div>
+                        <div className="font-semibold text-cyan-300">
                           {formatBn(t.marketBnb)} / {formatBn(t.targetRaise)}
                         </div>
                       </div>
@@ -499,9 +499,9 @@ export default function MarketPage() {
                           style={{ width: `${p}%` }}
                         />
                       </div>
-                      <div className="mt-1 flex items-center justify-between text-[10px] text-neutral-500">
+                      <div className="mt-1 flex items-center justify-between text-[10px] text-cyan-300/60">
                         <div className="truncate font-mono">{t.token.slice(0, 6)}...{t.token.slice(-4)}</div>
-                        <div className="shrink-0 font-semibold">{p.toFixed(1)}%</div>
+                        <div className="shrink-0 font-semibold text-cyan-300">{p.toFixed(1)}%</div>
                       </div>
                     </div>
                   </div>
@@ -525,10 +525,10 @@ export default function MarketPage() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <div className="truncate text-sm font-bold">
+                              <div className="truncate text-sm font-bold text-white">
                                 {t.name}
                               </div>
-                              <span className="text-xs text-neutral-400 shrink-0">{t.symbol}</span>
+                              <span className="text-xs text-cyan-300 shrink-0">{t.symbol}</span>
                               {t.templateId === 1n ? (
                                 <div className="rounded bg-sky-500/20 px-1.5 py-0.5 text-[10px] font-medium text-sky-300 border border-sky-500/30">税</div>
                               ) : null}
@@ -543,28 +543,28 @@ export default function MarketPage() {
                                 <div className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-300 border border-amber-500/30">Bonding</div>
                               )}
                             </div>
-                            <div className="mt-0.5 truncate text-xs text-neutral-500">{t.description || 'No description'}</div>
+                            <div className="mt-0.5 truncate text-xs text-cyan-200/70">{t.description || 'No description'}</div>
                             <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-gradient-to-r from-neutral-800 to-neutral-900">
                               <div
                                 className="h-full rounded-full bg-gradient-to-r from-emerald-400 via-sky-400 to-fuchsia-400 transition-all duration-500"
                                 style={{ width: `${p}%` }}
                               />
                             </div>
-                            <div className="mt-0.5 flex items-center justify-between text-[10px] text-neutral-500">
+                            <div className="mt-0.5 flex items-center justify-between text-[10px] text-cyan-300/60">
                               <div className="truncate font-mono">{t.token.slice(0, 6)}...{t.token.slice(-4)}</div>
-                              <div className="shrink-0 font-semibold">{p.toFixed(1)}%</div>
+                              <div className="shrink-0 font-semibold text-cyan-300">{p.toFixed(1)}%</div>
                             </div>
                           </div>
                         </div>
                       </Link>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-semibold text-neutral-200">{t.quotePriceBnbPerToken ? formatBn(t.quotePriceBnbPerToken, 18, 10) : "-"}</div>
-                      <div className="text-[10px] text-neutral-500">BNB</div>
+                      <div className="text-sm font-semibold text-cyan-300">{t.quotePriceBnbPerToken ? formatBn(t.quotePriceBnbPerToken, 18, 10) : "-"}</div>
+                      <div className="text-[10px] text-cyan-300/60">BNB</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-sm font-semibold text-neutral-200">{formatBn(t.marketBnb)}</div>
-                      <div className="text-[10px] text-neutral-500">/ {formatBn(t.targetRaise)} BNB</div>
+                      <div className="text-sm font-semibold text-cyan-300">{formatBn(t.marketBnb)}</div>
+                      <div className="text-[10px] text-cyan-300/60">/ {formatBn(t.targetRaise)} BNB</div>
                     </div>
                     <div className="flex justify-end">
                       <Link to={`/token/${t.token}`} className="rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 px-3 py-1.5 text-xs font-semibold text-white hover:from-blue-600 hover:to-purple-600 transition-all duration-200 shadow-md shadow-blue-500/20">
