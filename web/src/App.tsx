@@ -55,7 +55,7 @@ function Header() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between">
-              <div className="text-lg font-bold gradient-text">🦞 龙虾</div>
+              <div className="text-lg font-bold gradient-text">🦞 claw</div>
               <button
                 type="button"
                 className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-neutral-200 hover:bg-white/10 transition-all duration-200"
@@ -234,7 +234,7 @@ function Header() {
             </svg>
           </button>
           <Link to="/" className="text-xl font-bold tracking-wide gradient-text hover:opacity-80 transition-opacity">
-            🦞 龙虾
+            🦞 claw
           </Link>
           <nav className="flex items-center gap-4">
             <Link to="/" className="text-sm font-medium text-neutral-300 hover:text-white transition-colors relative group">

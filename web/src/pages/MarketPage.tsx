@@ -378,10 +378,6 @@ export default function MarketPage() {
                 Live
               </div>
             </div>
-            <div className="mt-1 text-xs text-neutral-400">
-              {data?.total ? `${data.total} 个代币` : "加载中..."}
-            </div>
-          </div>
           <div className="flex items-center gap-2">
             <button
               type="button"
