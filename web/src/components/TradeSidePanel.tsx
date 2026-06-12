@@ -37,8 +37,20 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
   const [bnbIn, setBnbIn] = useState("0.1")
   const [tokensIn, setTokensIn] = useState("")
   const [slippagePct, setSlippagePct] = useState("1")
+  const [copied, setCopied] = useState(false)
 
   const isTax = token.templateId === 1n
+
+  // 复制合约地址
+  const handleCopyAddress = async () => {
+    try {
+      await navigator.clipboard.writeText(token.token)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
 
   // 计算输入值
   const bnbInWei = useMemo(() => {
@@ -260,6 +272,17 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                 <div className="text-xs text-neutral-500 font-mono truncate max-w-[120px]" title={token.token}>
                   {token.token.slice(0, 6)}...{token.token.slice(-4)}
                 </div>
+                <button
+                  onClick={handleCopyAddress}
+                  className="text-xs px-2 py-0.5 rounded transition-all"
+                  style={{
+                    backgroundColor: copied ? 'rgba(16, 185, 129, 0.2)' : 'rgba(107, 201, 255, 0.1)',
+                    color: copied ? '#10B981' : '#8BCFFF',
+                    border: `1px solid ${copied ? 'rgba(16, 185, 129, 0.3)' : 'rgba(107, 201, 255, 0.2)'}`,
+                  }}
+                >
+                  {copied ? '✓ 已复制' : '📋 复制'}
+                </button>
               </div>
             </div>
           </div>
