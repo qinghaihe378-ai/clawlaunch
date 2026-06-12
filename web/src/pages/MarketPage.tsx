@@ -114,6 +114,67 @@ function parseBigInt(value: string | number | bigint | undefined): bigint {
   return BigInt(value)
 }
 
+// 本地缓存键
+const CACHE_KEY = 'claw_market_data'
+const CACHE_EXPIRY = 5 * 60 * 1000 // 5分钟缓存有效期
+
+// 从 localStorage 读取缓存
+function getCachedData(): MarketResult | undefined {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY)
+    if (!cached) return undefined
+    const { data, timestamp } = JSON.parse(cached)
+    // 检查缓存是否过期
+    if (Date.now() - timestamp > CACHE_EXPIRY) return undefined
+    // 恢复 bigint
+    return {
+      ...data,
+      rows: data.rows.map((row: any) => ({
+        ...row,
+        templateId: BigInt(row.templateId),
+        taxBps: BigInt(row.taxBps),
+        burnShareBps: BigInt(row.burnShareBps),
+        holderShareBps: BigInt(row.holderShareBps),
+        liquidityShareBps: BigInt(row.liquidityShareBps),
+        buybackShareBps: BigInt(row.buybackShareBps),
+        marketBnb: BigInt(row.marketBnb),
+        targetRaise: BigInt(row.targetRaise),
+        quotePriceBnbPerToken: row.quotePriceBnbPerToken ? BigInt(row.quotePriceBnbPerToken) : undefined
+      }))
+    }
+  } catch {
+    return undefined
+  }
+}
+
+// 保存数据到 localStorage
+function setCachedData(data: MarketResult) {
+  try {
+    // bigint 转 string 存储
+    const serializable = {
+      data: {
+        ...data,
+        rows: data.rows.map(row => ({
+          ...row,
+          templateId: row.templateId.toString(),
+          taxBps: row.taxBps.toString(),
+          burnShareBps: row.burnShareBps.toString(),
+          holderShareBps: row.holderShareBps.toString(),
+          liquidityShareBps: row.liquidityShareBps.toString(),
+          buybackShareBps: row.buybackShareBps.toString(),
+          marketBnb: row.marketBnb.toString(),
+          targetRaise: row.targetRaise.toString(),
+          quotePriceBnbPerToken: row.quotePriceBnbPerToken?.toString()
+        }))
+      },
+      timestamp: Date.now()
+    }
+    localStorage.setItem(CACHE_KEY, JSON.stringify(serializable))
+  } catch {
+    // 忽略存储错误
+  }
+}
+
 function mapApiTokenRow(row: ApiTokenRow): TokenRow {
   return {
     token: row.token,
@@ -157,6 +218,7 @@ export default function MarketPage() {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["market", chainId, visibleCount],
     enabled: isSupportedChain,
+    initialData: getCachedData, // 立即显示缓存
     queryFn: async (): Promise<MarketResult> => {
       const url = new URL(buildApiUrl('/tokens'))
       url.searchParams.set("version", "v1")
@@ -183,10 +245,16 @@ export default function MarketPage() {
       }
     },
     placeholderData: (previousData) => previousData,
-    staleTime: 30_000, // 30秒内视为新鲜数据，避免重复请求
-    refetchInterval: 60_000, // 60秒自动刷新（原10秒太频繁）
-    refetchOnWindowFocus: false, // 关闭窗口聚焦刷新，减少不必要的请求
+    staleTime: 60_000, // 60秒内视为新鲜数据
+    gcTime: 5 * 60 * 1000, // 缓存保留5分钟
+    refetchInterval: 60_000, // 60秒自动刷新
+    refetchOnWindowFocus: false,
   })
+
+  // 数据更新时保存到 localStorage
+  if (data) {
+    setCachedData(data)
+  }
 
   const rows = useMemo(() => {
     const list = data?.rows ?? []
