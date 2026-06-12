@@ -173,7 +173,7 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
           style={{
             border: '2px solid rgba(107, 201, 255, 0.3)',
             boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(107, 201, 255, 0.1)',
-            maxHeight: 'calc(80vh - 2rem)',
+            maxHeight: 'calc(90vh - 2rem)',
           }}
         >
         {/* 关闭按钮 */}
