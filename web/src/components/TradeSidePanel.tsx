@@ -343,15 +343,15 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
 
               {/* Slippage Setting */}
               <div 
-                className="rounded-xl p-3"
+                className="rounded-xl p-2"
                 style={{
                   backgroundColor: 'rgba(107, 201, 255, 0.06)',
                   border: '1px solid rgba(107, 201, 255, 0.15)',
                 }}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm text-neutral-400">Slippage</span>
-                  <span className="text-sm font-medium" style={{ color: '#8BCFFF' }}>{slippagePct}%</span>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs text-neutral-400">Slippage</span>
+                  <span className="text-xs font-medium" style={{ color: '#8BCFFF' }}>{slippagePct}%</span>
                 </div>
                 <input
                   type="range"
