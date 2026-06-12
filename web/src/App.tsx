@@ -111,6 +111,18 @@ function Header() {
                   {isPending ? "⏳ 连接中…" : "🔗 连接钱包"}
                 </button>
               )}
+              <a
+                href="https://x.com/CLAWDEXAI"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="glass-card rounded-2xl px-5 py-4 text-base font-semibold text-neutral-100 hover:bg-white/10 transition-all duration-200 flex items-center gap-2"
+                onClick={() => setMenuOpen(false)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                </svg>
+                官方X
+              </a>
             </div>
           </div>
         </div>,
