@@ -679,18 +679,6 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                   </div>
                 </div>
               )}
-
-              {/* Contract Address */}
-              <div 
-                className="rounded-xl p-3"
-                style={{
-                  backgroundColor: 'rgba(107, 201, 255, 0.06)',
-                  border: '1px solid rgba(107, 201, 255, 0.15)',
-                }}
-              >
-                <div className="text-xs text-neutral-400 mb-1">合约地址</div>
-                <div className="text-xs text-neutral-300 font-mono break-all">{token.token}</div>
-              </div>
             </div>
           )}
 
