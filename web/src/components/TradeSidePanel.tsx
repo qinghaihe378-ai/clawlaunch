@@ -545,6 +545,47 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                 </div>
               )}
 
+              {/* Token Mechanism & Tax */}
+              <div 
+                className="rounded-xl p-3 space-y-2"
+                style={{
+                  backgroundColor: 'rgba(107, 201, 255, 0.06)',
+                  border: '1px solid rgba(107, 201, 255, 0.15)',
+                }}
+              >
+                <div className="text-xs text-neutral-400 mb-2">代币机制</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <div className="text-xs text-neutral-500">类型</div>
+                    <div className="text-sm text-neutral-200 font-medium">
+                      {token.templateId === 1n ? 'Tax Token' : 'Standard'}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-neutral-500">税率</div>
+                    <div className="text-sm text-neutral-200 font-medium">
+                      {token.templateId === 1n ? `${(Number(token.taxBps) / 100).toFixed(2)}%` : '0%'}
+                    </div>
+                  </div>
+                  {token.templateId === 1n && (
+                    <>
+                      <div>
+                        <div className="text-xs text-neutral-500">买入税</div>
+                        <div className="text-sm text-neutral-200 font-medium">
+                          {(Number(token.taxBps) / 100).toFixed(2)}%
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-neutral-500">卖出税</div>
+                        <div className="text-sm text-neutral-200 font-medium">
+                          {(Number(token.taxBps) / 100).toFixed(2)}%
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
               {/* Market Stats */}
               <div 
                 className="rounded-xl p-3 space-y-2"
