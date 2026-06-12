@@ -198,7 +198,7 @@ export default function CreateTokenPage() {
               className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all duration-200 placeholder:text-neutral-500"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="例如：龙虾 Inu"
+              placeholder="例如：claw Inu"
             />
           </div>
           <div>
@@ -207,7 +207,7 @@ export default function CreateTokenPage() {
               className="mt-2 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all duration-200 placeholder:text-neutral-500"
               value={symbol}
               onChange={(e) => setSymbol(e.target.value.toUpperCase())}
-              placeholder="例如：龙虾"
+              placeholder="例如：claw"
             />
           </div>
           <div>
