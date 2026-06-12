@@ -500,8 +500,11 @@ export default function MarketPage() {
                           <div className="mt-1 truncate text-xs leading-relaxed" style={{ color: 'rgba(180, 200, 230, 0.75)' }}>{t.description || 'No description'}</div>
                         </div>
                       </div>
-                      <Link 
-                        to={`/token/${t.token}`} 
+                      <button
+                        onClick={() => {
+                          setSelectedToken(t)
+                          setSidePanelOpen(true)
+                        }}
                         className="shrink-0 rounded-xl px-4 py-2 text-xs font-semibold text-white transition-all duration-300 ease-out"
                         style={{
                           background: 'linear-gradient(135deg, #6BC9FF, #A78BFA)',
@@ -518,7 +521,7 @@ export default function MarketPage() {
                         }}
                       >
                         交易
-                      </Link>
+                      </button>
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
