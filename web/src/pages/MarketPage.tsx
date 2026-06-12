@@ -411,7 +411,17 @@ export default function MarketPage() {
         )}
         {error && <div className="glass-card rounded-2xl border-red-500/30 bg-red-500/10 p-5 text-sm text-red-300">❌ {String(error)}</div>}
 
-        <div className="w-full overflow-hidden rounded-2xl flex justify-center" style={{ backgroundColor: 'rgb(10, 11, 14)' }}>
+        <div 
+          className="w-full overflow-hidden rounded-2xl flex justify-center"
+          style={{ 
+            backgroundColor: 'rgb(10, 11, 14)',
+            backgroundImage: `
+              radial-gradient(circle at 18% 8%, rgba(0, 240, 255, 0.12), transparent 34%),
+              radial-gradient(circle at 82% 14%, rgba(177, 0, 255, 0.16), transparent 36%),
+              linear-gradient(135deg, rgb(10, 11, 14) 0%, rgb(17, 19, 26) 48%, rgb(10, 11, 14) 100%)
+            `,
+          }}
+        >
           <div className="space-y-4 p-2 w-full max-w-md">
             {rows.map((t) => {
               const p = pct(t.marketBnb, t.targetRaise, t.migrated)
