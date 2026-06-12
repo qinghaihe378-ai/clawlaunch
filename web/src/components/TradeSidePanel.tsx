@@ -206,38 +206,38 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
       >
         {/* 弹窗容器 */}
         <aside 
-          className="relative w-full max-w-md bg-[rgb(17,19,26)] rounded-2xl shadow-2xl"
+          className="relative w-full max-w-[380px] bg-[rgb(17,19,26)] rounded-2xl shadow-2xl"
           onClick={(e) => e.stopPropagation()}
           style={{
-            border: '2px solid rgba(107, 201, 255, 0.3)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(107, 201, 255, 0.1)',
+            border: '1px solid rgba(107, 201, 255, 0.2)',
+            boxShadow: '0 4px 24px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(107, 201, 255, 0.05)',
           }}
         >
         {/* 关闭按钮 */}
         <div 
-          className="sticky top-0 z-10 flex items-center justify-between p-4"
+          className="sticky top-0 z-10 flex items-center justify-between p-3"
           style={{
             backgroundColor: 'rgba(17, 19, 26, 0.95)',
-            borderBottom: '1px solid rgba(107, 201, 255, 0.15)',
+            borderBottom: '1px solid rgba(107, 201, 255, 0.1)',
           }}
         >
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowInfo(false)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 ${
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all duration-300 ${
                 !showInfo
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30'
-                  : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/10 border border-white/20'
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md shadow-blue-500/25'
+                  : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/10 border border-white/15'
               }`}
             >
               交易
             </button>
             <button
               onClick={() => setShowInfo(true)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 ${
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-all duration-300 ${
                 showInfo
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30'
-                  : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/10 border border-white/20'
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md shadow-blue-500/25'
+                  : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/10 border border-white/15'
               }`}
             >
               信息
@@ -245,43 +245,43 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 hover:bg-white/10 transition-colors"
+            className="rounded-lg p-1.5 hover:bg-white/10 transition-colors"
           >
-            <svg className="w-6 h-6 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="p-3 space-y-3">
           {/* 代币头部 */}
           <div className="flex items-center gap-3">
-            <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/20 bg-gradient-to-br from-blue-500/20 to-purple-500/20">
+            <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-white/20 bg-gradient-to-br from-blue-500/20 to-purple-500/20">
               {normalizeLogoUrl(token.logo) ? (
                 <img src={normalizeLogoUrl(token.logo)} alt="" className="h-full w-full object-cover" />
               ) : (
-                <div className={`flex h-full w-full items-center justify-center text-base font-bold text-white ${logoFallbackClass(token.token)}`}>
+                <div className={`flex h-full w-full items-center justify-center text-sm font-bold text-white ${logoFallbackClass(token.token)}`}>
                   {logoFallbackText(token.symbol, token.name)}
                 </div>
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-lg font-bold text-white truncate">{token.name}</div>
+              <div className="text-base font-bold text-white truncate">{token.name}</div>
               <div className="flex items-center gap-2">
-                <div className="text-sm font-medium" style={{ color: '#8BCFFF' }}>{token.symbol}</div>
-                <div className="text-xs text-neutral-500 font-mono truncate max-w-[120px]" title={token.token}>
+                <div className="text-xs font-medium" style={{ color: '#8BCFFF' }}>{token.symbol}</div>
+                <div className="text-[10px] text-neutral-500 font-mono truncate max-w-[100px]" title={token.token}>
                   {token.token.slice(0, 6)}...{token.token.slice(-4)}
                 </div>
                 <button
                   onClick={handleCopyAddress}
-                  className="text-xs px-2 py-0.5 rounded transition-all"
+                  className="text-[10px] px-1.5 py-0.5 rounded transition-all"
                   style={{
                     backgroundColor: copied ? 'rgba(16, 185, 129, 0.2)' : 'rgba(107, 201, 255, 0.1)',
                     color: copied ? '#10B981' : '#8BCFFF',
                     border: `1px solid ${copied ? 'rgba(16, 185, 129, 0.3)' : 'rgba(107, 201, 255, 0.2)'}`,
                   }}
                 >
-                  {copied ? '✓ 已复制' : '📋 复制'}
+                  {copied ? '✓' : '📋'}
                 </button>
               </div>
             </div>
