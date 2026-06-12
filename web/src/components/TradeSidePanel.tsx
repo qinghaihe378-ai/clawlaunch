@@ -94,12 +94,12 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
   )
 
   // 获取余额
-  const { data: bnbBalance } = useBalance({
+  const { data: bnbBalance, refetch: refetchBnbBalance } = useBalance({
     address,
     query: { enabled: !!address }
   })
 
-  const { data: tokenBalance } = useReadContract({
+  const { data: tokenBalance, refetch: refetchTokenBalance } = useReadContract({
     address: token.token,
     abi: erc20Abi,
     functionName: "balanceOf",
@@ -122,18 +122,30 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
   const needsApprove = isTax && address ? ((allowance as bigint | undefined) ?? 0n) < tokensInWei : false
 
   // 交易执行
-  const { writeContract, isPending, error } = useWriteContract()
-  const { isLoading: isConfirming } = useWaitForTransactionReceipt({ 
-    hash: undefined // Will be set after transaction
+  const { writeContract, isPending, error, data: txHash } = useWriteContract()
+  const { isLoading: isConfirming, isSuccess: isTxSuccess } = useWaitForTransactionReceipt({ 
+    hash: txHash
   })
+
+  // 交易成功后刷新余额
+  useEffect(() => {
+    if (isTxSuccess) {
+      setTimeout(() => {
+        refetchBnbBalance()
+        refetchTokenBalance()
+        refetchAllowance()
+      }, 1000)
+    }
+  }, [isTxSuccess, refetchBnbBalance, refetchTokenBalance, refetchAllowance])
 
   const {
     writeContract: writeApprove,
-    isPending: isApprovePending
+    isPending: isApprovePending,
+    data: approveHash
   } = useWriteContract()
 
   const { isSuccess: isApproveSuccess } = useWaitForTransactionReceipt({ 
-    hash: undefined
+    hash: approveHash
   })
 
   useEffect(() => {
@@ -152,7 +164,19 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
   })
   const withdrawable = (withdrawableDividend as bigint | undefined) ?? 0n
 
-  const { writeContract: writeDividend, isPending: isDividendPending } = useWriteContract()
+  const { writeContract: writeDividend, isPending: isDividendPending, data: dividendHash } = useWriteContract()
+  const { isSuccess: isDividendSuccess } = useWaitForTransactionReceipt({ 
+    hash: dividendHash
+  })
+
+  // 分红成功后刷新余额
+  useEffect(() => {
+    if (isDividendSuccess) {
+      setTimeout(() => {
+        refetchBnbBalance()
+      }, 1000)
+    }
+  }, [isDividendSuccess, refetchBnbBalance])
 
   if (!isOpen) return null
 
