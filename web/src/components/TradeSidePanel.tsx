@@ -179,10 +179,10 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
       >
         {/* 关闭按钮 */}
         <div 
-          className="sticky top-0 z-10 flex items-center justify-between p-4"
+          className="sticky top-0 z-10 flex items-center justify-between px-5 py-4"
           style={{
-            backgroundColor: 'rgba(17, 19, 26, 0.95)',
-            borderBottom: '1px solid rgba(107, 201, 255, 0.15)',
+            backgroundColor: 'rgba(17, 19, 26, 0.98)',
+            borderBottom: '1px solid rgba(107, 201, 255, 0.2)',
           }}
         >
           <h2 className="text-lg font-bold text-white">交易</h2>
@@ -196,7 +196,7 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
+        <div className="p-5 space-y-4">
           {/* 代币头部 */}
           <div className="flex items-center gap-3">
             <div className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-white/20 bg-gradient-to-br from-blue-500/20 to-purple-500/20">
@@ -217,7 +217,12 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
           {/* Claim Dividend */}
           {isTax && withdrawable > 0n && (
             <button
-              className="w-full rounded-lg bg-yellow-500/20 px-3 py-2 text-xs text-yellow-300 hover:bg-yellow-500/30 transition-all"
+              className="w-full rounded-xl px-4 py-3 text-xs font-semibold transition-all border"
+              style={{
+                backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                borderColor: 'rgba(234, 179, 8, 0.4)',
+                color: '#FDE047',
+              }}
               disabled={!address || isDividendPending}
               onClick={() =>
                 writeDividend({
@@ -234,16 +239,16 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
 
           {/* Buy/Sell Tabs */}
           <div 
-            className="rounded-xl p-1"
+            className="flex rounded-xl p-1.5"
             style={{
-              backgroundColor: 'rgba(107, 201, 255, 0.08)',
+              backgroundColor: 'rgba(17, 19, 26, 0.6)',
               border: '1px solid rgba(107, 201, 255, 0.15)',
             }}
           >
             <div className="flex gap-1">
               <button
                 onClick={() => setActiveTab('buy')}
-                className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                className={`flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 ${
                   activeTab === 'buy'
                     ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30'
                     : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
@@ -253,7 +258,7 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
               </button>
               <button
                 onClick={() => setActiveTab('sell')}
-                className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                className={`flex-1 py-3 px-4 rounded-lg text-sm font-semibold transition-all duration-300 ${
                   activeTab === 'sell'
                     ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30'
                     : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
@@ -266,9 +271,9 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
 
           {/* Slippage Setting */}
           <div 
-            className="flex items-center justify-between rounded-xl p-3"
+            className="flex items-center justify-between rounded-xl px-4 py-3"
             style={{
-              backgroundColor: 'rgba(107, 201, 255, 0.06)',
+              backgroundColor: 'rgba(17, 19, 26, 0.6)',
               border: '1px solid rgba(107, 201, 255, 0.15)',
             }}
           >
@@ -288,7 +293,7 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
           </div>
 
           {/* Trade Form */}
-          <div className="space-y-3">
+          <div className="space-y-4">
             {activeTab === 'buy' ? (
               <>
                 {/* You Pay */}
@@ -299,7 +304,7 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                   </div>
                   <div className="relative">
                     <input
-                      className="w-full rounded-xl px-4 py-3 pr-20 text-lg outline-none transition-all focus:border-emerald-500/50"
+                      className="w-full rounded-xl px-4 py-4 pr-20 text-lg outline-none transition-all focus:border-emerald-500/50"
                       value={bnbIn}
                       onChange={(e) => setBnbIn(e.target.value)}
                       placeholder="0.0"
@@ -307,7 +312,8 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                       step="any"
                       style={{
                         backgroundColor: 'rgba(17, 19, 26, 0.8)',
-                        border: '1px solid rgba(107, 201, 255, 0.2)',
+                        border: '1px solid rgba(107, 201, 255, 0.25)',
+                        color: '#fff',
                       }}
                     />
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-neutral-300">
@@ -317,16 +323,16 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                 </div>
 
                 {/* Quick Amount */}
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-2.5">
                   {["0.1", "0.5", "1"].map((val) => (
                     <button
                       key={val}
                       onClick={() => setBnbIn(val)}
-                      className="rounded-lg px-3 py-2 text-sm transition-all border"
+                      className="rounded-xl px-3 py-2.5 text-sm font-medium transition-all border"
                       style={{
-                        backgroundColor: bnbIn === val ? 'rgba(107, 201, 255, 0.15)' : 'rgba(107, 201, 255, 0.06)',
-                        borderColor: bnbIn === val ? 'rgba(107, 201, 255, 0.4)' : 'rgba(107, 201, 255, 0.15)',
-                        color: bnbIn === val ? '#6BC9FF' : 'rgba(107, 201, 255, 0.7)',
+                        backgroundColor: bnbIn === val ? 'rgba(16, 185, 129, 0.15)' : 'rgba(17, 19, 26, 0.6)',
+                        borderColor: bnbIn === val ? 'rgba(16, 185, 129, 0.4)' : 'rgba(107, 201, 255, 0.15)',
+                        color: bnbIn === val ? '#10B981' : 'rgba(107, 201, 255, 0.7)',
                       }}
                     >
                       {val} BNB
@@ -336,9 +342,9 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
 
                 {/* You Get */}
                 <div 
-                  className="p-3 rounded-xl"
+                  className="p-4 rounded-xl"
                   style={{
-                    backgroundColor: 'rgba(107, 201, 255, 0.06)',
+                    backgroundColor: 'rgba(17, 19, 26, 0.6)',
                     border: '1px solid rgba(107, 201, 255, 0.15)',
                   }}
                 >
@@ -350,7 +356,7 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
 
                 {/* Buy Button */}
                 <button
-                  className="w-full rounded-xl px-4 py-3.5 text-base font-semibold text-white disabled:opacity-60 transition-all shadow-lg"
+                  className="w-full rounded-xl px-4 py-4 text-base font-bold text-white disabled:opacity-60 transition-all shadow-lg"
                   style={{
                     background: 'linear-gradient(135deg, #10B981, #059669)',
                     boxShadow: '0 4px 16px rgba(16, 185, 129, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2)',
@@ -380,7 +386,7 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                   </div>
                   <div className="relative">
                     <input
-                      className="w-full rounded-xl px-4 py-3 pr-20 text-lg outline-none transition-all focus:border-red-500/50"
+                      className="w-full rounded-xl px-4 py-4 pr-20 text-lg outline-none transition-all focus:border-red-500/50"
                       value={tokensIn}
                       onChange={(e) => setTokensIn(e.target.value)}
                       placeholder="0.0"
@@ -388,7 +394,8 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                       step="any"
                       style={{
                         backgroundColor: 'rgba(17, 19, 26, 0.8)',
-                        border: '1px solid rgba(107, 201, 255, 0.2)',
+                        border: '1px solid rgba(107, 201, 255, 0.25)',
+                        color: '#fff',
                       }}
                     />
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-neutral-300">
@@ -398,7 +405,7 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                 </div>
 
                 {/* Percentage Buttons */}
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-4 gap-2.5">
                   {["25", "50", "75", "100"].map((pct) => (
                     <button
                       key={pct}
@@ -407,9 +414,9 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                         const amount = userTokenBalance * BigInt(Math.floor(percentage * 10000)) / 10000n
                         setTokensIn(formatUnits(amount, 18))
                       }}
-                      className="rounded-lg px-3 py-2 text-sm transition-all border"
+                      className="rounded-xl px-3 py-2.5 text-sm font-medium transition-all border"
                       style={{
-                        backgroundColor: 'rgba(107, 201, 255, 0.06)',
+                        backgroundColor: 'rgba(17, 19, 26, 0.6)',
                         borderColor: 'rgba(107, 201, 255, 0.15)',
                         color: 'rgba(107, 201, 255, 0.7)',
                       }}
@@ -421,9 +428,9 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
 
                 {/* You Get */}
                 <div 
-                  className="p-3 rounded-xl"
+                  className="p-4 rounded-xl"
                   style={{
-                    backgroundColor: 'rgba(107, 201, 255, 0.06)',
+                    backgroundColor: 'rgba(17, 19, 26, 0.6)',
                     border: '1px solid rgba(107, 201, 255, 0.15)',
                   }}
                 >
@@ -436,9 +443,9 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                 {/* Approve or Sell Button */}
                 {needsApprove ? (
                   <button
-                    className="w-full rounded-xl px-4 py-3.5 text-base font-semibold disabled:opacity-60 transition-all border-2"
+                    className="w-full rounded-xl px-4 py-4 text-base font-bold disabled:opacity-60 transition-all border-2"
                     style={{
-                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                      backgroundColor: 'rgba(59, 130, 246, 0.15)',
                       borderColor: 'rgba(59, 130, 246, 0.4)',
                       color: '#60A5FA',
                     }}
@@ -452,11 +459,11 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                       })
                     }
                   >
-                    {isApprovePending ? " Approving..." : "Approve"}
+                    {isApprovePending ? "⏳ Approving..." : "Approve"}
                   </button>
                 ) : (
                   <button
-                    className="w-full rounded-xl px-4 py-3.5 text-base font-semibold text-white disabled:opacity-60 transition-all shadow-lg"
+                    className="w-full rounded-xl px-4 py-4 text-base font-bold text-white disabled:opacity-60 transition-all shadow-lg"
                     style={{
                       background: 'linear-gradient(135deg, #EF4444, #DC2626)',
                       boxShadow: '0 4px 16px rgba(239, 68, 68, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2)',
@@ -482,10 +489,10 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
           {/* Error Message */}
           {error && (
             <div 
-              className="p-3 rounded-lg text-xs"
+              className="p-4 rounded-xl text-sm font-medium"
               style={{
-                backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
+                backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid rgba(239, 68, 68, 0.4)',
                 color: '#FCA5A5',
               }}
             >
