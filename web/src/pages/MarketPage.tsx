@@ -500,13 +500,7 @@ export default function MarketPage() {
                     </div>
 
                     <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                      <div 
-                        className="rounded-lg p-2.5"
-                        style={{
-                          backgroundColor: 'rgba(0, 240, 255, 0.08)',
-                          border: '1px solid rgba(0, 240, 255, 0.18)',
-                        }}
-                      >
+                      <div className="p-2.5">
                         <div className="text-[10px] mb-0.5" style={{ color: 'rgba(0, 240, 255, 0.6)' }}>价格</div>
                         <div className="font-semibold" style={{ color: '#00F0FF' }}>
                           {t.quotePriceBnbPerToken ? 
@@ -525,13 +519,7 @@ export default function MarketPage() {
                           : "-"}
                         </div>
                       </div>
-                      <div 
-                        className="rounded-lg p-2.5 text-right"
-                        style={{
-                          backgroundColor: 'rgba(0, 240, 255, 0.08)',
-                          border: '1px solid rgba(0, 240, 255, 0.18)',
-                        }}
-                      >
+                      <div className="p-2.5 text-right">
                         <div className="text-[10px] mb-0.5" style={{ color: 'rgba(0, 240, 255, 0.6)' }}>募资</div>
                         <div className="font-semibold" style={{ color: '#00F0FF' }}>
                           {formatBn(t.marketBnb)} / {formatBn(t.targetRaise)}
