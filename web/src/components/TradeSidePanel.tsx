@@ -268,187 +268,69 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
             </button>
           )}
 
-          {/* Buy/Sell Tabs */}
-          {!showInfo && (
-            <div 
-              className="rounded-xl p-1"
-              style={{
-                backgroundColor: 'rgba(107, 201, 255, 0.08)',
-                border: '1px solid rgba(107, 201, 255, 0.15)',
-              }}
-            >
-              <div className="flex gap-1">
-                <button
-                  onClick={() => setActiveTab('buy')}
-                  className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                    activeTab === 'buy'
-                      ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30'
-                      : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
-                  }`}
-                >
-                  Buy
-                </button>
-                <button
-                  onClick={() => setActiveTab('sell')}
-                  className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                    activeTab === 'sell'
-                      ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30'
-                      : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
-                  }`}
-                >
-                  Sell
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Token Info Section */}
-          {showInfo && (
-            <div className="space-y-3">
-              {/* Description */}
-              {token.description && (
-                <div 
-                  className="rounded-xl p-3"
-                  style={{
-                    backgroundColor: 'rgba(107, 201, 255, 0.06)',
-                    border: '1px solid rgba(107, 201, 255, 0.15)',
-                  }}
-                >
-                  <div className="text-xs text-neutral-400 mb-1">描述</div>
-                  <div className="text-sm text-neutral-200 leading-relaxed">{token.description}</div>
-                </div>
-              )}
-
-              {/* Market Stats */}
+          {/* Content Tabs */}
+          {!showInfo ? (
+            // Trade Tab
+            <div className="space-y-4">
+              {/* Buy/Sell Tabs */}
               <div 
-                className="rounded-xl p-3 space-y-2"
+                className="rounded-xl p-1"
+                style={{
+                  backgroundColor: 'rgba(107, 201, 255, 0.08)',
+                  border: '1px solid rgba(107, 201, 255, 0.15)',
+                }}
+              >
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setActiveTab('buy')}
+                    className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                      activeTab === 'buy'
+                        ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30'
+                        : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
+                    }`}
+                  >
+                    Buy
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('sell')}
+                    className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                      activeTab === 'sell'
+                        ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30'
+                        : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
+                    }`}
+                  >
+                    Sell
+                  </button>
+                </div>
+              </div>
+
+              {/* Slippage Setting */}
+              <div 
+                className="flex items-center justify-between rounded-xl p-3"
                 style={{
                   backgroundColor: 'rgba(107, 201, 255, 0.06)',
                   border: '1px solid rgba(107, 201, 255, 0.15)',
                 }}
               >
-                <div className="text-xs text-neutral-400 mb-2">市场数据</div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <div className="text-xs text-neutral-500">池子BNB</div>
-                    <div className="text-sm text-neutral-200 font-medium">{formatBn(token.marketBnb, 18, 4)} BNB</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-neutral-500">目标募集</div>
-                    <div className="text-sm text-neutral-200 font-medium">{formatBn(token.targetRaise, 18, 4)} BNB</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-neutral-500">进度</div>
-                    <div className="text-sm text-neutral-200 font-medium">{progress.toFixed(2)}%</div>
-                  </div>
-                  <div>
-                    <div className="text-xs text-neutral-500">模板</div>
-                    <div className="text-sm text-neutral-200 font-medium">{token.templateId === 1n ? 'Tax Token' : 'Standard'}</div>
-                  </div>
+                <span className="text-sm text-neutral-400">Slippage</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={slippagePct}
+                    onChange={(e) => setSlippagePct(e.target.value)}
+                    className="w-16 rounded-lg bg-white/5 px-2 py-1 text-right text-sm text-neutral-200 outline-none focus:ring-1 focus:ring-blue-500/50"
+                    min="0.1"
+                    max="50"
+                    step="0.1"
+                  />
+                  <span className="text-sm text-neutral-400">%</span>
                 </div>
               </div>
 
-              {/* Social Links */}
-              {(token.website || token.telegram || token.twitter) && (
-                <div 
-                  className="rounded-xl p-3"
-                  style={{
-                    backgroundColor: 'rgba(107, 201, 255, 0.06)',
-                    border: '1px solid rgba(107, 201, 255, 0.15)',
-                  }}
-                >
-                  <div className="text-xs text-neutral-400 mb-2">社交链接</div>
-                  <div className="flex flex-wrap gap-2">
-                    {token.website && (
-                      <a
-                        href={token.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                        style={{
-                          backgroundColor: 'rgba(107, 201, 255, 0.15)',
-                          color: '#8BCFFF',
-                          border: '1px solid rgba(107, 201, 255, 0.3)',
-                        }}
-                      >
-                         Website
-                      </a>
-                    )}
-                    {token.telegram && (
-                      <a
-                        href={token.telegram}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                        style={{
-                          backgroundColor: 'rgba(107, 201, 255, 0.15)',
-                          color: '#8BCFFF',
-                          border: '1px solid rgba(107, 201, 255, 0.3)',
-                        }}
-                      >
-                        💬 Telegram
-                      </a>
-                    )}
-                    {token.twitter && (
-                      <a
-                        href={token.twitter}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                        style={{
-                          backgroundColor: 'rgba(107, 201, 255, 0.15)',
-                          color: '#8BCFFF',
-                          border: '1px solid rgba(107, 201, 255, 0.3)',
-                        }}
-                      >
-                        🐦 Twitter
-                      </a>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Contract Address */}
-              <div 
-                className="rounded-xl p-3"
-                style={{
-                  backgroundColor: 'rgba(107, 201, 255, 0.06)',
-                  border: '1px solid rgba(107, 201, 255, 0.15)',
-                }}
-              >
-                <div className="text-xs text-neutral-400 mb-1">合约地址</div>
-                <div className="text-xs text-neutral-300 font-mono break-all">{token.token}</div>
-              </div>
-            </div>
-          )}
-
-          {/* Slippage Setting */}
-          <div 
-            className="flex items-center justify-between rounded-xl p-3"
-            style={{
-              backgroundColor: 'rgba(107, 201, 255, 0.06)',
-              border: '1px solid rgba(107, 201, 255, 0.15)',
-            }}
-          >
-            <span className="text-sm text-neutral-400">Slippage</span>
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                value={slippagePct}
-                onChange={(e) => setSlippagePct(e.target.value)}
-                className="w-16 rounded-lg bg-white/5 px-2 py-1 text-right text-sm text-neutral-200 outline-none focus:ring-1 focus:ring-blue-500/50"
-                min="0.1"
-                max="50"
-                step="0.1"
-              />
-              <span className="text-sm text-neutral-400">%</span>
-            </div>
-          </div>
-
-          {/* Trade Form */}
-          <div className="space-y-3">
-            {activeTab === 'buy' ? (
-              <>
+              {/* Trade Form */}
+              <div className="space-y-3">
+                {activeTab === 'buy' ? (
+                  <>
                 {/* You Pay */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -635,7 +517,127 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                 )}
               </>
             )}
-          </div>
+              </div>
+            </div>
+          ) : (
+            // Info Tab
+            <div className="space-y-3">
+              {/* Description */}
+              {token.description && (
+                <div 
+                  className="rounded-xl p-3"
+                  style={{
+                    backgroundColor: 'rgba(107, 201, 255, 0.06)',
+                    border: '1px solid rgba(107, 201, 255, 0.15)',
+                  }}
+                >
+                  <div className="text-xs text-neutral-400 mb-1">描述</div>
+                  <div className="text-sm text-neutral-200 leading-relaxed">{token.description}</div>
+                </div>
+              )}
+
+              {/* Market Stats */}
+              <div 
+                className="rounded-xl p-3 space-y-2"
+                style={{
+                  backgroundColor: 'rgba(107, 201, 255, 0.06)',
+                  border: '1px solid rgba(107, 201, 255, 0.15)',
+                }}
+              >
+                <div className="text-xs text-neutral-400 mb-2">市场数据</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <div className="text-xs text-neutral-500">池子BNB</div>
+                    <div className="text-sm text-neutral-200 font-medium">{formatBn(token.marketBnb, 18, 4)} BNB</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-neutral-500">目标募集</div>
+                    <div className="text-sm text-neutral-200 font-medium">{formatBn(token.targetRaise, 18, 4)} BNB</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-neutral-500">进度</div>
+                    <div className="text-sm text-neutral-200 font-medium">{progress.toFixed(2)}%</div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-neutral-500">模板</div>
+                    <div className="text-sm text-neutral-200 font-medium">{token.templateId === 1n ? 'Tax Token' : 'Standard'}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Social Links */}
+              {(token.website || token.telegram || token.twitter) && (
+                <div 
+                  className="rounded-xl p-3"
+                  style={{
+                    backgroundColor: 'rgba(107, 201, 255, 0.06)',
+                    border: '1px solid rgba(107, 201, 255, 0.15)',
+                  }}
+                >
+                  <div className="text-xs text-neutral-400 mb-2">社交链接</div>
+                  <div className="flex flex-wrap gap-2">
+                    {token.website && (
+                      <a
+                        href={token.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                        style={{
+                          backgroundColor: 'rgba(107, 201, 255, 0.15)',
+                          color: '#8BCFFF',
+                          border: '1px solid rgba(107, 201, 255, 0.3)',
+                        }}
+                      >
+                         Website
+                      </a>
+                    )}
+                    {token.telegram && (
+                      <a
+                        href={token.telegram}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                        style={{
+                          backgroundColor: 'rgba(107, 201, 255, 0.15)',
+                          color: '#8BCFFF',
+                          border: '1px solid rgba(107, 201, 255, 0.3)',
+                        }}
+                      >
+                        💬 Telegram
+                      </a>
+                    )}
+                    {token.twitter && (
+                      <a
+                        href={token.twitter}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                        style={{
+                          backgroundColor: 'rgba(107, 201, 255, 0.15)',
+                          color: '#8BCFFF',
+                          border: '1px solid rgba(107, 201, 255, 0.3)',
+                        }}
+                      >
+                        🐦 Twitter
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Contract Address */}
+              <div 
+                className="rounded-xl p-3"
+                style={{
+                  backgroundColor: 'rgba(107, 201, 255, 0.06)',
+                  border: '1px solid rgba(107, 201, 255, 0.15)',
+                }}
+              >
+                <div className="text-xs text-neutral-400 mb-1">合约地址</div>
+                <div className="text-xs text-neutral-300 font-mono break-all">{token.token}</div>
+              </div>
+            </div>
+          )}
 
           {/* Error Message */}
           {error && (
