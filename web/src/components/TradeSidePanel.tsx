@@ -209,7 +209,19 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
             borderBottom: '1px solid rgba(107, 201, 255, 0.15)',
           }}
         >
-          <h2 className="text-lg font-bold text-white">交易</h2>
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-bold text-white">交易</h2>
+            <button
+              onClick={() => setShowInfo(!showInfo)}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all duration-300 ${
+                showInfo
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30'
+                  : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/10 border border-white/20'
+              }`}
+            >
+              信息
+            </button>
+          </div>
           <button
             onClick={onClose}
             className="rounded-lg p-2 hover:bg-white/10 transition-colors"
@@ -257,50 +269,38 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
           )}
 
           {/* Buy/Sell Tabs */}
-          <div 
-            className="rounded-xl p-1"
-            style={{
-              backgroundColor: 'rgba(107, 201, 255, 0.08)',
-              border: '1px solid rgba(107, 201, 255, 0.15)',
-            }}
-          >
-            <div className="flex gap-1">
-              {!showInfo && (
-                <>
-                  <button
-                    onClick={() => setActiveTab('buy')}
-                    className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                      activeTab === 'buy'
-                        ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30'
-                        : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
-                    }`}
-                  >
-                    Buy
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('sell')}
-                    className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                      activeTab === 'sell'
-                        ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30'
-                        : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
-                    }`}
-                  >
-                    Sell
-                  </button>
-                </>
-              )}
-              <button
-                onClick={() => setShowInfo(!showInfo)}
-                className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
-                  showInfo
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30'
-                    : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
-                }`}
-              >
-                信息
-              </button>
+          {!showInfo && (
+            <div 
+              className="rounded-xl p-1"
+              style={{
+                backgroundColor: 'rgba(107, 201, 255, 0.08)',
+                border: '1px solid rgba(107, 201, 255, 0.15)',
+              }}
+            >
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setActiveTab('buy')}
+                  className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                    activeTab === 'buy'
+                      ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg shadow-emerald-500/30'
+                      : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
+                  }`}
+                >
+                  Buy
+                </button>
+                <button
+                  onClick={() => setActiveTab('sell')}
+                  className={`flex-1 py-3 px-4 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                    activeTab === 'sell'
+                      ? 'bg-gradient-to-r from-red-500 to-red-600 text-white shadow-lg shadow-red-500/30'
+                      : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/5'
+                  }`}
+                >
+                  Sell
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Token Info Section */}
           {showInfo && (
