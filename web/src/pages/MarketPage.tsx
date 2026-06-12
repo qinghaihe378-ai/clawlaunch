@@ -5,6 +5,7 @@ import { useChainId } from "wagmi"
 
 import { formatBn } from "../lib/format"
 import { logoFallbackClass, logoFallbackText, normalizeLogoUrl } from "../lib/logo"
+import TradeSidePanel from "../components/TradeSidePanel"
 
 const INITIAL_VISIBLE_COUNT = 20
 const LOAD_MORE_STEP = 20
@@ -456,18 +457,11 @@ export default function MarketPage() {
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2">
-                      <Link 
-                        to={`/token/${t.token}`} 
+                      <div 
                         className="flex min-w-0 items-center gap-2 flex-1 cursor-pointer"
-                        onClick={(e) => {
-                          // 添加点击反馈
-                          const card = e.currentTarget.closest('.group') as HTMLElement
-                          if (card) {
-                            card.style.transform = 'scale(0.98)'
-                            setTimeout(() => {
-                              card.style.transform = ''
-                            }, 150)
-                          }
+                        onClick={() => {
+                          setSelectedToken(t)
+                          setSidePanelOpen(true)
                         }}
                       >
                         <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-white/20 bg-gradient-to-br from-blue-500/20 to-purple-500/20">
@@ -505,7 +499,7 @@ export default function MarketPage() {
                           </div>
                           <div className="mt-1 truncate text-xs leading-relaxed" style={{ color: 'rgba(180, 200, 230, 0.75)' }}>{t.description || 'No description'}</div>
                         </div>
-                      </Link>
+                      </div>
                       <Link 
                         to={`/token/${t.token}`} 
                         className="shrink-0 rounded-xl px-4 py-2 text-xs font-semibold text-white transition-all duration-300 ease-out"
@@ -678,6 +672,15 @@ export default function MarketPage() {
           </div>
         ) : null}
       </div>
+      
+      {/* 侧边交易面板 */}
+      {selectedToken && (
+        <TradeSidePanel
+          token={selectedToken}
+          isOpen={sidePanelOpen}
+          onClose={() => setSidePanelOpen(false)}
+        />
+      )}
     </div>
   )
 }
