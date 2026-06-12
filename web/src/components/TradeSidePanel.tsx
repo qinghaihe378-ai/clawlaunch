@@ -343,25 +343,49 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
 
               {/* Slippage Setting */}
               <div 
-                className="flex items-center justify-between rounded-xl p-3"
+                className="rounded-xl p-3"
                 style={{
                   backgroundColor: 'rgba(107, 201, 255, 0.06)',
                   border: '1px solid rgba(107, 201, 255, 0.15)',
                 }}
               >
-                <span className="text-sm text-neutral-400">Slippage</span>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    value={slippagePct}
-                    onChange={(e) => setSlippagePct(e.target.value)}
-                    className="w-16 rounded-lg bg-white/5 px-2 py-1 text-right text-sm text-neutral-200 outline-none focus:ring-1 focus:ring-blue-500/50"
-                    min="0.1"
-                    max="50"
-                    step="0.1"
-                  />
-                  <span className="text-sm text-neutral-400">%</span>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm text-neutral-400">Slippage</span>
+                  <span className="text-sm font-medium" style={{ color: '#8BCFFF' }}>{slippagePct}%</span>
                 </div>
+                <input
+                  type="range"
+                  value={slippagePct}
+                  onChange={(e) => setSlippagePct(e.target.value)}
+                  className="w-full h-2 rounded-lg appearance-none cursor-pointer"
+                  style={{
+                    background: `linear-gradient(to right, #6BC9FF ${slippagePct}%, rgba(107, 201, 255, 0.2) ${slippagePct}%)`,
+                  }}
+                  min="0.1"
+                  max="50"
+                  step="0.1"
+                />
+                <style>{`
+                  input[type='range']::-webkit-slider-thumb {
+                    -webkit-appearance: none;
+                    appearance: none;
+                    width: 16px;
+                    height: 16px;
+                    border-radius: 50%;
+                    background: #6BC9FF;
+                    cursor: pointer;
+                    box-shadow: 0 0 8px rgba(107, 201, 255, 0.5);
+                  }
+                  input[type='range']::-moz-range-thumb {
+                    width: 16px;
+                    height: 16px;
+                    border-radius: 50%;
+                    background: #6BC9FF;
+                    cursor: pointer;
+                    border: none;
+                    box-shadow: 0 0 8px rgba(107, 201, 255, 0.5);
+                  }
+                `}</style>
               </div>
 
               {/* Trade Form */}
