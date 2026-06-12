@@ -149,6 +149,8 @@ export default function MarketPage() {
   const [raise, setRaise] = useState<"all" | "2" | "3">("all")
   const [template, setTemplate] = useState<"all" | "base" | "tax">("all")
   const [filterOpen, setFilterOpen] = useState(false)
+  const [selectedToken, setSelectedToken] = useState<TokenRow | null>(null)
+  const [sidePanelOpen, setSidePanelOpen] = useState(false)
   const isSupportedChain = chainId === 56 || chainId === 97
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -454,7 +456,20 @@ export default function MarketPage() {
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2">
-                      <Link to={`/token/${t.token}`} className="flex min-w-0 items-center gap-2 flex-1">
+                      <Link 
+                        to={`/token/${t.token}`} 
+                        className="flex min-w-0 items-center gap-2 flex-1 cursor-pointer"
+                        onClick={(e) => {
+                          // 添加点击反馈
+                          const card = e.currentTarget.closest('.group') as HTMLElement
+                          if (card) {
+                            card.style.transform = 'scale(0.98)'
+                            setTimeout(() => {
+                              card.style.transform = ''
+                            }, 150)
+                          }
+                        }}
+                      >
                         <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-white/20 bg-gradient-to-br from-blue-500/20 to-purple-500/20">
                           {normalizeLogoUrl(t.logo) ? (
                             <img src={normalizeLogoUrl(t.logo)} alt="" className="h-full w-full object-cover" />
