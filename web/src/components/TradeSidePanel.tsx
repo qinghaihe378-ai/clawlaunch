@@ -224,7 +224,7 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowInfo(false)}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all duration-300 ${
+              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 ${
                 !showInfo
                   ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30'
                   : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/10 border border-white/20'
@@ -234,7 +234,7 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
             </button>
             <button
               onClick={() => setShowInfo(true)}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all duration-300 ${
+              className={`px-4 py-1.5 rounded-lg text-sm font-semibold transition-all duration-300 ${
                 showInfo
                   ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30'
                   : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/10 border border-white/20'
