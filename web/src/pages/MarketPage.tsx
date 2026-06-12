@@ -428,26 +428,28 @@ export default function MarketPage() {
               return (
                 <div
                   key={t.token}
-                  className="group w-full transition-all duration-200"
+                  className="group w-full transition-all duration-300 ease-out"
                   style={{
-                    backgroundColor: 'rgba(17, 19, 26, 0.92)',
-                    backgroundImage: 'linear-gradient(135deg, rgba(17, 19, 26, 0.96), rgba(14, 16, 23, 0.96))',
-                    border: '1px solid rgba(0, 240, 255, 0.18)',
-                    borderRadius: '18px',
-                    padding: '12px',
-                    boxShadow: 'rgba(0, 0, 0, 0.38) 0px 8px 20px 0px, rgba(255, 255, 255, 0.04) 0px 1px 0px 0px inset',
+                    backgroundColor: 'rgba(20, 22, 30, 0.85)',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    backgroundImage: 'linear-gradient(135deg, rgba(30, 35, 50, 0.9), rgba(20, 22, 30, 0.85))',
+                    border: '1px solid rgba(100, 200, 255, 0.15)',
+                    borderRadius: '20px',
+                    padding: '16px',
+                    boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(255, 255, 255, 0.05) inset',
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)'
-                    e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.6)'
-                    e.currentTarget.style.backgroundImage = 'linear-gradient(135deg, rgba(0, 240, 255, 0.08), rgba(177, 0, 255, 0.08)), rgb(17, 19, 26)'
-                    e.currentTarget.style.boxShadow = 'rgba(0, 240, 255, 0.16) 0px 0px 24px, rgba(0, 0, 0, 0.46) 0px 10px 28px'
+                    e.currentTarget.style.transform = 'translateY(-4px) scale(1.01)'
+                    e.currentTarget.style.borderColor = 'rgba(100, 200, 255, 0.4)'
+                    e.currentTarget.style.backgroundImage = 'linear-gradient(135deg, rgba(100, 200, 255, 0.08), rgba(150, 100, 255, 0.08)), rgba(25, 28, 40, 0.95)'
+                    e.currentTarget.style.boxShadow = '0 12px 40px rgba(100, 200, 255, 0.15), 0 4px 12px rgba(0, 0, 0, 0.4)'
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)'
-                    e.currentTarget.style.borderColor = 'rgba(0, 240, 255, 0.18)'
-                    e.currentTarget.style.backgroundImage = 'linear-gradient(135deg, rgba(17, 19, 26, 0.96), rgba(14, 16, 23, 0.96))'
-                    e.currentTarget.style.boxShadow = 'rgba(0, 0, 0, 0.38) 0px 8px 20px 0px, rgba(255, 255, 255, 0.04) 0px 1px 0px 0px inset'
+                    e.currentTarget.style.transform = 'translateY(0) scale(1)'
+                    e.currentTarget.style.borderColor = 'rgba(100, 200, 255, 0.15)'
+                    e.currentTarget.style.backgroundImage = 'linear-gradient(135deg, rgba(30, 35, 50, 0.9), rgba(20, 22, 30, 0.85))'
+                    e.currentTarget.style.boxShadow = '0 4px 24px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(255, 255, 255, 0.05) inset'
                   }}
                 >
                   <div>
@@ -471,7 +473,7 @@ export default function MarketPage() {
                             <div className="truncate text-sm font-bold" style={{ color: '#FFFFFF' }}>
                               {t.name}
                             </div>
-                            <span className="text-xs shrink-0" style={{ color: '#00F0FF' }}>{t.symbol}</span>
+                            <span className="text-xs shrink-0 font-medium" style={{ color: '#8BCFFF' }}>{t.symbol}</span>
                             {t.templateId === 1n ? (
                               <div className="rounded bg-sky-500/20 px-1.5 py-0.5 text-[10px] font-medium text-sky-300 border border-sky-500/30">税</div>
                             ) : null}
@@ -486,33 +488,34 @@ export default function MarketPage() {
                               <div className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-medium text-amber-300 border border-amber-500/30">Bonding</div>
                             )}
                           </div>
-                          <div className="mt-0.5 truncate text-xs" style={{ color: 'rgba(0, 240, 255, 0.7)' }}>{t.description || 'No description'}</div>
+                          <div className="mt-1 truncate text-xs leading-relaxed" style={{ color: 'rgba(180, 200, 230, 0.75)' }}>{t.description || 'No description'}</div>
                         </div>
                       </Link>
                       <Link 
                         to={`/token/${t.token}`} 
-                        className="shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold text-white transition-all duration-200"
+                        className="shrink-0 rounded-xl px-4 py-2 text-xs font-semibold text-white transition-all duration-300 ease-out"
                         style={{
-                          background: 'linear-gradient(135deg, #00F0FF, #B100FF)',
-                          boxShadow: 'rgba(0, 240, 255, 0.25) 0px 4px 12px',
+                          background: 'linear-gradient(135deg, #6BC9FF, #A78BFA)',
+                          boxShadow: '0 4px 16px rgba(107, 201, 255, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2)',
+                          letterSpacing: '0.05em',
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.boxShadow = 'rgba(0, 240, 255, 0.4) 0px 6px 16px'
-                          e.currentTarget.style.transform = 'translateY(-1px)'
+                          e.currentTarget.style.boxShadow = '0 8px 24px rgba(107, 201, 255, 0.4), 0 4px 8px rgba(0, 0, 0, 0.3)'
+                          e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)'
                         }}
                         onMouseLeave={(e) => {
-                          e.currentTarget.style.boxShadow = 'rgba(0, 240, 255, 0.25) 0px 4px 12px'
-                          e.currentTarget.style.transform = 'translateY(0)'
+                          e.currentTarget.style.boxShadow = '0 4px 16px rgba(107, 201, 255, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2)'
+                          e.currentTarget.style.transform = 'translateY(0) scale(1)'
                         }}
                       >
                         交易
                       </Link>
                     </div>
 
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                      <div className="p-2.5">
-                        <div className="text-[10px] mb-0.5" style={{ color: 'rgba(0, 240, 255, 0.6)' }}>价格</div>
-                        <div className="font-semibold" style={{ color: '#00F0FF' }}>
+                    <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
+                      <div className="p-3 rounded-xl" style={{ backgroundColor: 'rgba(100, 200, 255, 0.06)' }}>
+                        <div className="text-[10px] mb-1 font-medium tracking-wide uppercase" style={{ color: 'rgba(100, 200, 255, 0.7)' }}>价格</div>
+                        <div className="font-semibold text-sm" style={{ color: '#8BCFFF' }}>
                           {t.quotePriceBnbPerToken ? 
                             (() => {
                               // quotePriceBnbPerToken 是放大 10^18 倍的值，需要除以 10^18
@@ -529,33 +532,34 @@ export default function MarketPage() {
                           : "-"}
                         </div>
                       </div>
-                      <div className="p-2.5 text-right">
-                        <div className="text-[10px] mb-0.5" style={{ color: 'rgba(0, 240, 255, 0.6)' }}>募资</div>
-                        <div className="font-semibold" style={{ color: '#00F0FF' }}>
+                      <div className="p-3 rounded-xl text-right" style={{ backgroundColor: 'rgba(100, 200, 255, 0.06)' }}>
+                        <div className="text-[10px] mb-1 font-medium tracking-wide uppercase" style={{ color: 'rgba(100, 200, 255, 0.7)' }}>募资</div>
+                        <div className="font-semibold text-sm" style={{ color: '#8BCFFF' }}>
                           {formatBn(t.marketBnb)} / {formatBn(t.targetRaise)}
                         </div>
                       </div>
                     </div>
 
-                    <div className="mt-3">
+                    <div className="mt-4">
                       <div 
-                        className="h-1.5 w-full overflow-hidden rounded-full"
+                        className="h-2 w-full overflow-hidden rounded-full"
                         style={{
-                          backgroundColor: 'rgba(0, 240, 255, 0.08)',
-                          border: '1px solid rgba(0, 240, 255, 0.18)',
+                          backgroundColor: 'rgba(100, 200, 255, 0.08)',
+                          boxShadow: 'inset 0 1px 3px rgba(0, 0, 0, 0.3)',
                         }}
                       >
                         <div
-                          className="h-full rounded-full transition-all duration-500"
+                          className="h-full rounded-full transition-all duration-700 ease-out"
                           style={{ 
                             width: `${p}%`,
-                            background: 'linear-gradient(90deg, #00F0FF, #B100FF)',
+                            background: 'linear-gradient(90deg, #6BC9FF, #A78BFA)',
+                            boxShadow: '0 0 12px rgba(107, 201, 255, 0.4)',
                           }}
                         />
                       </div>
-                      <div className="mt-1 flex items-center justify-between text-[10px]" style={{ color: 'rgba(0, 240, 255, 0.6)' }}>
-                        <div className="truncate font-mono" style={{ color: 'rgba(0, 240, 255, 0.6)' }}>{t.token.slice(0, 6)}...{t.token.slice(-4)}</div>
-                        <div className="shrink-0 font-semibold" style={{ color: '#00F0FF' }}>{p.toFixed(1)}%</div>
+                      <div className="mt-2 flex items-center justify-between text-[10px]" style={{ color: 'rgba(150, 180, 220, 0.7)' }}>
+                        <div className="truncate font-mono tracking-wide" style={{ color: 'rgba(150, 180, 220, 0.7)' }}>{t.token.slice(0, 6)}...{t.token.slice(-4)}</div>
+                        <div className="shrink-0 font-semibold" style={{ color: '#8BCFFF' }}>{p.toFixed(1)}%</div>
                       </div>
                     </div>
                   </div>
