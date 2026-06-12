@@ -170,7 +170,7 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
       
       {/* 侧边面板 */}
       <aside 
-        className="fixed right-0 top-0 z-50 h-full w-[92vw] sm:w-[360px] md:w-[400px] lg:w-[448px] bg-[rgb(17,19,26)] shadow-2xl transform transition-transform duration-300 ease-out overflow-y-auto"
+        className="fixed right-0 top-0 z-50 h-full w-[46vw] sm:w-[180px] md:w-[200px] lg:w-[224px] bg-[rgb(17,19,26)] shadow-2xl transform transition-transform duration-300 ease-out overflow-y-auto"
         style={{
           transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
           borderLeft: '2px solid rgba(107, 201, 255, 0.3)',
