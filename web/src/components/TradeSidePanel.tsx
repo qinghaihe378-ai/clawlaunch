@@ -170,14 +170,21 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
       
       {/* 侧边面板 */}
       <aside 
-        className="fixed right-0 top-0 z-50 h-full w-[380px] bg-[rgb(17,19,26)] shadow-2xl transform transition-transform duration-300 ease-out overflow-y-auto"
+        className="fixed right-0 top-0 z-50 h-full w-[360px] bg-[rgb(17,19,26)] shadow-2xl transform transition-transform duration-300 ease-out overflow-y-auto"
         style={{
           transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
-          borderLeft: '1px solid rgba(100, 200, 255, 0.15)',
+          borderLeft: '2px solid rgba(107, 201, 255, 0.3)',
+          boxShadow: '-4px 0 24px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(107, 201, 255, 0.1)',
         }}
       >
         {/* 关闭按钮 */}
-        <div className="sticky top-0 z-10 flex items-center justify-between p-4 border-b border-white/10 bg-[rgb(17,19,26)]">
+        <div 
+          className="sticky top-0 z-10 flex items-center justify-between p-4"
+          style={{
+            backgroundColor: 'rgba(17, 19, 26, 0.95)',
+            borderBottom: '1px solid rgba(107, 201, 255, 0.15)',
+          }}
+        >
           <h2 className="text-lg font-bold text-white">交易</h2>
           <button
             onClick={onClose}
@@ -226,7 +233,13 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
           )}
 
           {/* Buy/Sell Tabs */}
-          <div className="glass-card rounded-2xl p-1">
+          <div 
+            className="rounded-xl p-1"
+            style={{
+              backgroundColor: 'rgba(107, 201, 255, 0.08)',
+              border: '1px solid rgba(107, 201, 255, 0.15)',
+            }}
+          >
             <div className="flex gap-1">
               <button
                 onClick={() => setActiveTab('buy')}
@@ -252,7 +265,13 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
           </div>
 
           {/* Slippage Setting */}
-          <div className="flex items-center justify-between">
+          <div 
+            className="flex items-center justify-between rounded-xl p-3"
+            style={{
+              backgroundColor: 'rgba(107, 201, 255, 0.06)',
+              border: '1px solid rgba(107, 201, 255, 0.15)',
+            }}
+          >
             <span className="text-sm text-neutral-400">Slippage</span>
             <div className="flex items-center gap-2">
               <input
@@ -280,12 +299,16 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                   </div>
                   <div className="relative">
                     <input
-                      className="w-full rounded-xl border border-white/10 bg-neutral-950 px-4 py-3 pr-20 text-lg outline-none focus:border-emerald-500/50 transition-all"
+                      className="w-full rounded-xl px-4 py-3 pr-20 text-lg outline-none transition-all focus:border-emerald-500/50"
                       value={bnbIn}
                       onChange={(e) => setBnbIn(e.target.value)}
                       placeholder="0.0"
                       type="number"
                       step="any"
+                      style={{
+                        backgroundColor: 'rgba(17, 19, 26, 0.8)',
+                        border: '1px solid rgba(107, 201, 255, 0.2)',
+                      }}
                     />
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-neutral-300">
                       BNB
@@ -299,7 +322,12 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                     <button
                       key={val}
                       onClick={() => setBnbIn(val)}
-                      className="rounded-lg bg-white/5 px-3 py-2 text-sm text-neutral-300 hover:bg-white/10 transition-all border border-white/10"
+                      className="rounded-lg px-3 py-2 text-sm transition-all border"
+                      style={{
+                        backgroundColor: bnbIn === val ? 'rgba(107, 201, 255, 0.15)' : 'rgba(107, 201, 255, 0.06)',
+                        borderColor: bnbIn === val ? 'rgba(107, 201, 255, 0.4)' : 'rgba(107, 201, 255, 0.15)',
+                        color: bnbIn === val ? '#6BC9FF' : 'rgba(107, 201, 255, 0.7)',
+                      }}
                     >
                       {val} BNB
                     </button>
@@ -307,7 +335,13 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                 </div>
 
                 {/* You Get */}
-                <div className="p-3 rounded-xl bg-white/5 border border-white/5">
+                <div 
+                  className="p-3 rounded-xl"
+                  style={{
+                    backgroundColor: 'rgba(107, 201, 255, 0.06)',
+                    border: '1px solid rgba(107, 201, 255, 0.15)',
+                  }}
+                >
                   <div className="text-xs text-neutral-400 mb-1">You get</div>
                   <div className="text-lg font-semibold text-neutral-200">
                     {formatBn(tokensOut, 18, 6)}
@@ -316,7 +350,12 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
 
                 {/* Buy Button */}
                 <button
-                  className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-3.5 text-base font-semibold text-white hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-60 transition-all shadow-lg shadow-emerald-500/25"
+                  className="w-full rounded-xl px-4 py-3.5 text-base font-semibold text-white disabled:opacity-60 transition-all shadow-lg"
+                  style={{
+                    background: 'linear-gradient(135deg, #10B981, #059669)',
+                    boxShadow: '0 4px 16px rgba(16, 185, 129, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2)',
+                    letterSpacing: '0.05em',
+                  }}
                   disabled={!address || isPending || isConfirming || bnbInWei === 0n}
                   onClick={() =>
                     writeContract({
@@ -341,12 +380,16 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                   </div>
                   <div className="relative">
                     <input
-                      className="w-full rounded-xl border border-white/10 bg-neutral-950 px-4 py-3 pr-20 text-lg outline-none focus:border-red-500/50 transition-all"
+                      className="w-full rounded-xl px-4 py-3 pr-20 text-lg outline-none transition-all focus:border-red-500/50"
                       value={tokensIn}
                       onChange={(e) => setTokensIn(e.target.value)}
                       placeholder="0.0"
                       type="number"
                       step="any"
+                      style={{
+                        backgroundColor: 'rgba(17, 19, 26, 0.8)',
+                        border: '1px solid rgba(107, 201, 255, 0.2)',
+                      }}
                     />
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-neutral-300">
                       TOKEN
@@ -364,7 +407,12 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                         const amount = userTokenBalance * BigInt(Math.floor(percentage * 10000)) / 10000n
                         setTokensIn(formatUnits(amount, 18))
                       }}
-                      className="rounded-lg bg-white/5 px-3 py-2 text-sm text-neutral-300 hover:bg-white/10 transition-all border border-white/10"
+                      className="rounded-lg px-3 py-2 text-sm transition-all border"
+                      style={{
+                        backgroundColor: 'rgba(107, 201, 255, 0.06)',
+                        borderColor: 'rgba(107, 201, 255, 0.15)',
+                        color: 'rgba(107, 201, 255, 0.7)',
+                      }}
                     >
                       {pct}%
                     </button>
@@ -372,7 +420,13 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                 </div>
 
                 {/* You Get */}
-                <div className="p-3 rounded-xl bg-white/5 border border-white/5">
+                <div 
+                  className="p-3 rounded-xl"
+                  style={{
+                    backgroundColor: 'rgba(107, 201, 255, 0.06)',
+                    border: '1px solid rgba(107, 201, 255, 0.15)',
+                  }}
+                >
                   <div className="text-xs text-neutral-400 mb-1">You get</div>
                   <div className="text-lg font-semibold text-neutral-200">
                     {formatBn(bnbOut, 18, 6)} BNB
@@ -382,7 +436,12 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                 {/* Approve or Sell Button */}
                 {needsApprove ? (
                   <button
-                    className="w-full rounded-xl border-2 border-blue-500 bg-blue-500/10 px-4 py-3.5 text-base font-semibold text-blue-300 hover:bg-blue-500/20 disabled:opacity-60 transition-all"
+                    className="w-full rounded-xl px-4 py-3.5 text-base font-semibold disabled:opacity-60 transition-all border-2"
+                    style={{
+                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                      borderColor: 'rgba(59, 130, 246, 0.4)',
+                      color: '#60A5FA',
+                    }}
                     disabled={!address || isApprovePending}
                     onClick={() =>
                       writeApprove({
@@ -393,11 +452,16 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
                       })
                     }
                   >
-                    {isApprovePending ? "⏳ Approving..." : "Approve"}
+                    {isApprovePending ? " Approving..." : "Approve"}
                   </button>
                 ) : (
                   <button
-                    className="w-full rounded-xl bg-gradient-to-r from-red-500 to-red-600 px-4 py-3.5 text-base font-semibold text-white hover:from-red-600 hover:to-red-700 disabled:opacity-60 transition-all shadow-lg shadow-red-500/25"
+                    className="w-full rounded-xl px-4 py-3.5 text-base font-semibold text-white disabled:opacity-60 transition-all shadow-lg"
+                    style={{
+                      background: 'linear-gradient(135deg, #EF4444, #DC2626)',
+                      boxShadow: '0 4px 16px rgba(239, 68, 68, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2)',
+                      letterSpacing: '0.05em',
+                    }}
                     disabled={!address || isPending || isConfirming || tokensInWei === 0n}
                     onClick={() =>
                       writeContract({
@@ -417,7 +481,14 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
 
           {/* Error Message */}
           {error && (
-            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30 text-xs text-red-300">
+            <div 
+              className="p-3 rounded-lg text-xs"
+              style={{
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#FCA5A5',
+              }}
+            >
               ❌ {error.message}
             </div>
           )}
