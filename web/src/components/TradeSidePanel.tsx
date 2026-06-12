@@ -255,7 +255,12 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-lg font-bold text-white truncate">{token.name}</div>
-              <div className="text-sm font-medium" style={{ color: '#8BCFFF' }}>{token.symbol}</div>
+              <div className="flex items-center gap-2">
+                <div className="text-sm font-medium" style={{ color: '#8BCFFF' }}>{token.symbol}</div>
+                <div className="text-xs text-neutral-500 font-mono truncate max-w-[120px]" title={token.token}>
+                  {token.token.slice(0, 6)}...{token.token.slice(-4)}
+                </div>
+              </div>
             </div>
           </div>
 
