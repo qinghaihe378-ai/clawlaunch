@@ -278,29 +278,13 @@ function Header() {
 }
 
 function RouteSkeleton() {
-  return (
-    <div className="space-y-4">
-      <div className="flex items-end justify-between gap-3">
-        <div className="h-9 w-40 animate-pulse rounded-xl bg-gradient-to-r from-blue-500/20 to-purple-500/20" />
-        <div className="h-10 w-28 animate-pulse rounded-xl bg-gradient-to-r from-blue-500/20 to-purple-500/20" />
-      </div>
-      <div className="space-y-3">
-        <div className="glass-card rounded-2xl p-4">
-          <div className="space-y-3">
-            <div className="h-20 w-full animate-pulse rounded-xl bg-white/5" />
-            <div className="h-20 w-full animate-pulse rounded-xl bg-white/5" />
-            <div className="h-20 w-full animate-pulse rounded-xl bg-white/5" />
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+  return null
 }
 
 export default function App() {
   return (
     <BrowserRouter basename={routerBasename()}>
-      <div className="min-h-[100svh] bg-[radial-gradient(1200px_circle_at_10%_0%,rgba(59,130,246,0.15),transparent_50%),radial-gradient(1000px_circle_at_95%_15%,rgba(168,85,247,0.12),transparent_50%),radial-gradient(800px_circle_at_50%_50%,rgba(236,72,153,0.08),transparent_60%)]">
+      <div className="min-h-[100svh] bg-neutral-950">
         <Header />
         <div className="mx-auto max-w-md px-4 py-6 pb-[calc(2.5rem+var(--safe-bottom))]">
           <Suspense fallback={<RouteSkeleton />}>

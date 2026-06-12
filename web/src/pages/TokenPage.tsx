@@ -205,29 +205,7 @@ export default function TokenPage() {
     info.targetRaise === 2000000000000000000n ? "2" : info.targetRaise === 3000000000000000000n ? "3" : undefined
   ) : undefined
 
-  if (!info) return (
-    <div className="space-y-4">
-      <div className="glass-card rounded-2xl p-8 animate-pulse">
-        <div className="flex items-center gap-4">
-          <div className="h-16 w-16 rounded-xl bg-gradient-to-r from-blue-500/20 to-purple-500/20" />
-          <div className="flex-1 space-y-2">
-            <div className="h-7 w-48 rounded-lg bg-gradient-to-r from-blue-500/20 to-purple-500/20" />
-            <div className="h-4 w-32 rounded-lg bg-white/5" />
-          </div>
-        </div>
-      </div>
-      <div className="glass-card rounded-2xl p-8 animate-pulse">
-        <div className="space-y-3">
-          <div className="h-5 w-24 rounded-lg bg-gradient-to-r from-blue-500/20 to-purple-500/20" />
-          <div className="h-2 w-full rounded-full bg-white/5" />
-          <div className="grid grid-cols-2 gap-3">
-            <div className="h-20 rounded-xl bg-white/5" />
-            <div className="h-20 rounded-xl bg-white/5" />
-          </div>
-        </div>
-      </div>
-    </div>
-  )
+  if (!info) return null
 
   return (
     <div className="space-y-3">

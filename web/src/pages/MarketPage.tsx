@@ -183,9 +183,9 @@ export default function MarketPage() {
       }
     },
     placeholderData: (previousData) => previousData,
-    staleTime: 0, // 数据立即过期，每次都会重新请求
-    refetchInterval: 10_000, // 每10秒自动刷新
-    refetchOnWindowFocus: true, // 切换窗口时刷新
+    staleTime: 30_000, // 30秒内视为新鲜数据，避免重复请求
+    refetchInterval: 60_000, // 60秒自动刷新（原10秒太频繁）
+    refetchOnWindowFocus: false, // 关闭窗口聚焦刷新，减少不必要的请求
   })
 
   const rows = useMemo(() => {
@@ -402,13 +402,7 @@ export default function MarketPage() {
             ⚠️ 当前仅支持 BSC 主网 / 测试网，请切换到 ChainId 56 或 97
           </div>
         )}
-        {isLoading && !data && (
-          <div className="space-y-3">
-            <div className="h-24 animate-pulse rounded-xl glass-card" />
-            <div className="h-24 animate-pulse rounded-xl glass-card" />
-            <div className="h-24 animate-pulse rounded-xl glass-card" />
-          </div>
-        )}
+
         {error && <div className="glass-card rounded-2xl border-red-500/30 bg-red-500/10 p-5 text-sm text-red-300">❌ {String(error)}</div>}
 
         <div 

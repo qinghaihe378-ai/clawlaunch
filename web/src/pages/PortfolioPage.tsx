@@ -164,7 +164,7 @@ export default function PortfolioPage() {
           <div className="text-sm text-neutral-400">共 {(data?.length ?? 0).toString()} 个</div>
         </div>
 
-        {isLoading && <div className="glass-card rounded-2xl p-5 text-sm text-neutral-400 animate-pulse">加载中…</div>}
+
         {error && <div className="glass-card rounded-2xl border-red-500/30 bg-red-500/10 p-5 text-sm text-red-300">❌ {String(error)}</div>}
 
         <div className="overflow-hidden glass-card rounded-2xl">
