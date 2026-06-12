@@ -209,10 +209,19 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
             borderBottom: '1px solid rgba(107, 201, 255, 0.15)',
           }}
         >
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-bold text-white">交易</h2>
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setShowInfo(!showInfo)}
+              onClick={() => setShowInfo(false)}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all duration-300 ${
+                !showInfo
+                  ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30'
+                  : 'text-neutral-400 hover:text-neutral-200 hover:bg-white/10 border border-white/20'
+              }`}
+            >
+              交易
+            </button>
+            <button
+              onClick={() => setShowInfo(true)}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all duration-300 ${
                 showInfo
                   ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/30'
