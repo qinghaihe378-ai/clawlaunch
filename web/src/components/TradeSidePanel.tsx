@@ -164,19 +164,18 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
     <>
       {/* 遮罩层 */}
       <div 
-        className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm transition-opacity duration-300"
+        className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm transition-opacity duration-300 flex items-center justify-center p-4"
         onClick={onClose}
-      />
-      
-      {/* 侧边面板 */}
-      <aside 
-        className="fixed right-0 top-0 z-50 h-full w-[85vw] sm:w-[320px] md:w-[360px] lg:w-[400px] bg-[rgb(17,19,26)] shadow-2xl transform transition-transform duration-300 ease-out overflow-y-auto"
-        style={{
-          transform: isOpen ? 'translateX(0)' : 'translateX(100%)',
-          borderLeft: '2px solid rgba(107, 201, 255, 0.3)',
-          boxShadow: '-4px 0 24px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(107, 201, 255, 0.1)',
-        }}
       >
+        {/* 弹窗容器 */}
+        <aside 
+          className="relative w-full max-w-md bg-[rgb(17,19,26)] rounded-2xl shadow-2xl overflow-y-auto"
+          style={{
+            border: '2px solid rgba(107, 201, 255, 0.3)',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(107, 201, 255, 0.1)',
+            maxHeight: 'calc(100vh - 2rem)',
+          }}
+        >
         {/* 关闭按钮 */}
         <div 
           className="sticky top-0 z-10 flex items-center justify-between p-4"
@@ -494,6 +493,7 @@ export default function TradeSidePanel({ token, onClose, isOpen }: SidePanelProp
           )}
         </div>
       </aside>
+      </div>
     </>
   )
 }
