@@ -269,20 +269,16 @@ function Header() {
               行情
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 group-hover:w-full transition-all duration-300"></span>
             </Link>
+            <Link to="/swap" className="text-sm font-medium text-neutral-300 hover:text-white transition-colors relative group">
+              Swap
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 group-hover:w-full transition-all duration-300"></span>
+            </Link>
             <Link to="/create" className="text-sm font-medium text-neutral-300 hover:text-white transition-colors relative group">
               发行
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 group-hover:w-full transition-all duration-300"></span>
             </Link>
             <Link to="/portfolio" className="text-sm font-medium text-neutral-300 hover:text-white transition-colors relative group">
               持仓
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 group-hover:w-full transition-all duration-300"></span>
-            </Link>
-            <Link to="/swap" className="text-sm font-medium text-neutral-300 hover:text-white transition-colors relative group">
-              Swap
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 group-hover:w-full transition-all duration-300"></span>
-            </Link>
-            <Link to="/pool" className="text-sm font-medium text-neutral-300 hover:text-white transition-colors relative group">
-              流动性
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 group-hover:w-full transition-all duration-300"></span>
             </Link>
           </nav>
