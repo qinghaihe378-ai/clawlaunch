@@ -10,6 +10,8 @@ const MarketPage = lazy(() => import("./pages/MarketPage"))
 const CreateTokenPage = lazy(() => import("./pages/CreateTokenPage"))
 const TokenPage = lazy(() => import("./pages/TokenPage"))
 const PortfolioPage = lazy(() => import("./pages/PortfolioPage"))
+const SwapPage = lazy(() => import("./pages/SwapPage"))
+const PoolPage = lazy(() => import("./pages/PoolPage"))
 
 /** 与 vite base 一致；根路径开发时为 undefined */
 function routerBasename(): string | undefined {
@@ -85,6 +87,20 @@ function Header() {
                 onClick={() => setMenuOpen(false)}
               >
                 💼 持仓
+              </Link>
+              <Link
+                to="/swap"
+                className="glass-card rounded-2xl px-5 py-4 text-base font-semibold text-neutral-100 hover:bg-white/10 transition-all duration-200"
+                onClick={() => setMenuOpen(false)}
+              >
+                💧 Swap
+              </Link>
+              <Link
+                to="/pool"
+                className="glass-card rounded-2xl px-5 py-4 text-base font-semibold text-neutral-100 hover:bg-white/10 transition-all duration-200"
+                onClick={() => setMenuOpen(false)}
+              >
+                🏊 流动性
               </Link>
               {address ? (
                 <button
@@ -261,6 +277,14 @@ function Header() {
               持仓
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 group-hover:w-full transition-all duration-300"></span>
             </Link>
+            <Link to="/swap" className="text-sm font-medium text-neutral-300 hover:text-white transition-colors relative group">
+              Swap
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 group-hover:w-full transition-all duration-300"></span>
+            </Link>
+            <Link to="/pool" className="text-sm font-medium text-neutral-300 hover:text-white transition-colors relative group">
+              流动性
+              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 group-hover:w-full transition-all duration-300"></span>
+            </Link>
           </nav>
         </div>
       </div>
@@ -293,6 +317,8 @@ export default function App() {
               <Route path="/create" element={<CreateTokenPage />} />
               <Route path="/token/:token" element={<TokenPage />} />
               <Route path="/portfolio" element={<PortfolioPage />} />
+              <Route path="/swap" element={<SwapPage />} />
+              <Route path="/pool" element={<PoolPage />} />
             </Routes>
           </Suspense>
         </div>
