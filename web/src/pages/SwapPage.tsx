@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useAccount, useSwitchChain, useWriteContract, useWaitForTransactionReceipt, useReadContract } from "wagmi"
+import { useAccount, useSwitchChain, useWriteContract, useWaitForTransactionReceipt, useReadContract, useBalance } from "wagmi"
 import { parseEther, formatEther, type Address, isAddress } from "viem"
 import { bsc } from "wagmi/chains"
 
@@ -213,8 +213,8 @@ export default function SwapPage() {
     }
   })
 
-  // Get balance
-  const { data: balance } = useReadContract({
+  // Get balance for ERC20 tokens
+  const { data: balance, refetch: refetchBalance } = useReadContract({
     address: isAddress(fromToken.address) ? fromToken.address as Address : undefined,
     abi: ERC20_ABI,
     functionName: "balanceOf",
@@ -223,6 +223,17 @@ export default function SwapPage() {
       enabled: !!address && !fromToken.isNative && isAddress(fromToken.address),
     }
   })
+
+  // Get BNB balance
+  const { data: bnbBalance, refetch: refetchBnbBalance } = useBalance({
+    address: address,
+    query: {
+      enabled: !!address && fromToken.isNative,
+    }
+  })
+
+  // Use the appropriate balance
+  const displayBalance = fromToken.isNative ? bnbBalance?.value : balance
 
   // Update toAmount when quote changes
   useEffect(() => {
@@ -350,6 +361,19 @@ export default function SwapPage() {
     }
   }, [isConfirmed, isSwapping, refetchAllowance])
 
+  // Refetch balance after swap transaction is confirmed
+  useEffect(() => {
+    if (isConfirmed && !isSwapping) {
+      setTimeout(() => {
+        if (fromToken.isNative) {
+          refetchBnbBalance()
+        } else {
+          refetchBalance()
+        }
+      }, 1500)
+    }
+  }, [isConfirmed, isSwapping, fromToken.isNative, refetchBalance, refetchBnbBalance])
+
   const handleApprove = () => {
     if (!address || !fromAmount) return
     
@@ -404,7 +428,7 @@ export default function SwapPage() {
   }
 
   const isOnBSC = chainId === bsc.id
-  const formattedBalance = balance ? formatEther(balance) : "0"
+  const formattedBalance = displayBalance ? formatEther(displayBalance) : "0"
   
   // Check if user has enough balance
   const hasEnoughBalance = (() => {
@@ -474,18 +498,28 @@ export default function SwapPage() {
                   }}
                   className="flex-shrink-0 flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 active:scale-95 px-2.5 py-1.5 rounded-lg text-white font-semibold transition-all shadow-lg shadow-blue-600/20 whitespace-nowrap text-xs"
                 >
-                  <div className="relative w-5 h-5">
-                    {fromToken.logo && (
-                      <img 
-                        src={fromToken.logo} 
-                        alt={fromToken.symbol} 
-                        className="w-5 h-5 rounded-full absolute inset-0"
-                        onError={(e) => e.currentTarget.style.display = 'none'}
-                      />
+                  <div className="relative w-5 h-5 flex-shrink-0">
+                    {fromToken.logo ? (
+                      <>
+                        <img 
+                          src={fromToken.logo} 
+                          alt={fromToken.symbol} 
+                          className="w-5 h-5 rounded-full absolute inset-0 object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                            const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                            if (fallback) fallback.style.opacity = '1'
+                          }}
+                        />
+                        <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold opacity-0 transition-opacity">
+                          {fromToken.symbol[0]}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold">
+                        {fromToken.symbol[0]}
+                      </div>
                     )}
-                    <div className={`w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold ${fromToken.logo ? 'opacity-0' : ''}`}>
-                      {fromToken.symbol[0]}
-                    </div>
                   </div>
                   <span>{fromToken.symbol}</span>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="opacity-70">
@@ -584,18 +618,28 @@ export default function SwapPage() {
                             className="w-full px-4 py-3 rounded-xl text-left hover:bg-white/5 transition-colors flex items-center justify-between text-sm"
                           >
                             <div className="flex items-center gap-3">
-                              <div className="relative w-8 h-8">
-                                {token.logo && (
-                                  <img 
-                                    src={token.logo} 
-                                    alt={token.symbol} 
-                                    className="w-8 h-8 rounded-full absolute inset-0"
-                                    onError={(e) => e.currentTarget.style.display = 'none'}
-                                  />
+                              <div className="relative w-8 h-8 flex-shrink-0">
+                                {token.logo ? (
+                                  <>
+                                    <img 
+                                      src={token.logo} 
+                                      alt={token.symbol} 
+                                      className="w-8 h-8 rounded-full absolute inset-0 object-cover"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none'
+                                        const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                                        if (fallback) fallback.style.opacity = '1'
+                                      }}
+                                    />
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold opacity-0 transition-opacity">
+                                      {token.symbol[0]}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold">
+                                    {token.symbol[0]}
+                                  </div>
                                 )}
-                                <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-sm font-bold ${token.logo ? 'opacity-0' : ''}`}>
-                                  {token.symbol[0]}
-                                </div>
                               </div>
                               <div>
                                 <div className="font-semibold text-white">{token.symbol}</div>
@@ -751,18 +795,28 @@ export default function SwapPage() {
                             className="w-full px-4 py-3 rounded-xl text-left hover:bg-white/5 transition-colors flex items-center justify-between text-sm"
                           >
                             <div className="flex items-center gap-3">
-                              <div className="relative w-8 h-8">
-                                {token.logo && (
-                                  <img 
-                                    src={token.logo} 
-                                    alt={token.symbol} 
-                                    className="w-8 h-8 rounded-full absolute inset-0"
-                                    onError={(e) => e.currentTarget.style.display = 'none'}
-                                  />
+                              <div className="relative w-8 h-8 flex-shrink-0">
+                                {token.logo ? (
+                                  <>
+                                    <img 
+                                      src={token.logo} 
+                                      alt={token.symbol} 
+                                      className="w-8 h-8 rounded-full absolute inset-0 object-cover"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none'
+                                        const fallback = e.currentTarget.nextElementSibling as HTMLElement
+                                        if (fallback) fallback.style.opacity = '1'
+                                      }}
+                                    />
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold opacity-0 transition-opacity">
+                                      {token.symbol[0]}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold">
+                                    {token.symbol[0]}
+                                  </div>
                                 )}
-                                <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-sm font-bold ${token.logo ? 'opacity-0' : ''}`}>
-                                  {token.symbol[0]}
-                                </div>
                               </div>
                               <div>
                                 <div className="font-semibold text-white">{token.symbol}</div>
