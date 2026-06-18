@@ -257,13 +257,16 @@ export default function SwapPage() {
 
   // Check approval status
   useEffect(() => {
-    if (allowance && fromAmount) {
+    if (fromToken.isNative) {
+      setIsApproved(true)
+    } else if (allowance && fromAmount) {
       const needed = parseEther(fromAmount)
       setIsApproved(allowance >= needed)
-    } else if (fromToken.isNative) {
-      setIsApproved(true)
+    } else {
+      // Reset to false when token changes or no amount entered
+      setIsApproved(false)
     }
-  }, [allowance, fromAmount, fromToken.isNative])
+  }, [allowance, fromAmount, fromToken.address, fromToken.isNative])
 
   // Search token by address for FROM
   const { data: fromTokenSymbol } = useReadContract({
@@ -386,6 +389,8 @@ export default function SwapPage() {
     setToToken(fromToken)
     setFromAmount(toAmount)
     setToAmount(fromAmount)
+    // Reset approval status when switching tokens
+    setIsApproved(false)
   }
 
   const isOnBSC = chainId === bsc.id
@@ -527,6 +532,7 @@ export default function SwapPage() {
                               setFromAmount("")
                               setFromSearchedToken(null)
                               setFromCustomAddress("")
+                              setIsApproved(false)
                             }}
                             className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl text-sm font-semibold text-white transition-all"
                           >
@@ -545,6 +551,7 @@ export default function SwapPage() {
                                 setFromToken(token)
                                 setShowFromSearch(false)
                                 setFromAmount("")
+                                setIsApproved(false)
                               }}
                               className="px-3 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-medium transition-colors text-center"
                             >
@@ -562,6 +569,7 @@ export default function SwapPage() {
                               setFromToken(token)
                               setShowFromSearch(false)
                               setFromAmount("")
+                              setIsApproved(false)
                             }}
                             className="w-full px-4 py-3 rounded-xl text-left hover:bg-white/5 transition-colors flex items-center justify-between text-sm"
                           >
