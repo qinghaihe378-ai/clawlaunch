@@ -157,6 +157,8 @@ export default function SwapPage() {
   const [fromAmount, setFromAmount] = useState("")
   const [toAmount, setToAmount] = useState("")
   const [slippage, setSlippage] = useState(0.5)
+  const [showSlippageModal, setShowSlippageModal] = useState(false)
+  const [customSlippage, setCustomSlippage] = useState("")
   const [isApproved, setIsApproved] = useState(true)
   const [showFromSearch, setShowFromSearch] = useState(false)
   const [showToSearch, setShowToSearch] = useState(false)
@@ -388,25 +390,25 @@ export default function SwapPage() {
 
   const isOnBSC = chainId === bsc.id
   const formattedBalance = balance ? formatEther(balance) : "0"
+  
+  // Check if user has enough balance
+  const hasEnoughBalance = (() => {
+    if (fromToken.isNative) return true // BNB balance check would need separate logic
+    if (!balance || !fromAmount) return true
+    const balanceNum = parseFloat(formattedBalance)
+    const neededNum = parseFloat(fromAmount)
+    return balanceNum >= neededNum
+  })()
 
   return (
-    <div className="w-full min-h-[calc(100vh-80px)] flex items-center justify-center p-3">
-        <div className="w-full max-w-[420px] bg-gradient-to-b from-gray-900 via-black to-gray-900 rounded-2xl border border-white/10 shadow-2xl">
+    <div className="w-full flex justify-center pt-4 p-3">
+        <div className="w-full max-w-md bg-gradient-to-b from-gray-900 via-black to-gray-900 rounded-2xl border border-white/10 shadow-2xl">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 bg-black/20">
             <h2 className="text-lg font-bold text-white tracking-tight">Swap</h2>
             <div className="flex items-center gap-2">
               <button
-                onClick={() => window.location.href = '/pool'}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gradient-to-r from-blue-600/20 to-purple-600/20 hover:from-blue-600/30 hover:to-purple-600/30 rounded-lg text-xs text-blue-400 transition-all border border-blue-500/20"
-              >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2v20M2 12h20"/>
-                </svg>
-                <span className="font-medium">添加流动性</span>
-              </button>
-              <button
-                onClick={() => setSlippage(slippage === 0.5 ? 1 : 0.5)}
+                onClick={() => setShowSlippageModal(true)}
                 className="flex items-center gap-2 px-3 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-xs text-gray-400 transition-all border border-white/5"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="opacity-70">
@@ -424,12 +426,22 @@ export default function SwapPage() {
               <div className="flex justify-between mb-1.5">
                 <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">From</span>
                 {address && !fromToken.isNative && (
-                  <button 
-                    onClick={() => setFromAmount(formattedBalance)}
-                    className="text-[10px] text-blue-400 hover:text-blue-300 transition-colors font-medium"
-                  >
-                    Balance: {parseFloat(formattedBalance).toFixed(4)}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      onClick={() => setFromAmount(formattedBalance)}
+                      className="text-[10px] text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                    >
+                      最大
+                    </button>
+                    <span className="text-[10px] text-gray-500">
+                      余额: {parseFloat(formattedBalance).toFixed(4)}
+                    </span>
+                  </div>
+                )}
+                {address && fromToken.isNative && (
+                  <span className="text-[10px] text-gray-500">
+                    BNB余额需保留Gas费
+                  </span>
                 )}
               </div>
               <div className="flex items-center justify-between gap-2">
@@ -469,103 +481,118 @@ export default function SwapPage() {
 
               {/* Token Selector Dropdown */}
               {showFromSearch && (
-                <div className="absolute top-full left-0 right-0 mt-1.5 bg-gray-900 rounded-xl p-3 z-[100] shadow-2xl max-h-[350px] overflow-y-auto border border-white/10">
-                  <input
-                    type="text"
-                    value={fromCustomAddress}
-                    onChange={(e) => setFromCustomAddress(e.target.value)}
-                    placeholder="搜索名称或粘贴地址"
-                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 mb-2 transition-colors"
+                <>
+                  <div 
+                    className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm" 
+                    onClick={() => setShowFromSearch(false)}
                   />
-
-                  {fromSearchedToken && (
-                    <div className="mb-2 p-2.5 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-lg border border-blue-500/20">
-                      <div className="flex items-center gap-2.5 mb-1.5">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-sm font-bold">
-                          {fromSearchedToken.symbol[0]}
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-xs font-semibold text-white">{fromSearchedToken.symbol}</div>
-                          <div className="text-[10px] text-gray-400">{fromSearchedToken.name}</div>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          const newToken = {
-                            symbol: fromSearchedToken.symbol,
-                            address: fromSearchedToken.address,
-                            isNative: false,
-                            logo: `https://tokens.pancakeswap.finance/images/${fromSearchedToken.address}.png`,
-                          }
-                          setFromToken(newToken)
-                          setShowFromSearch(false)
-                          setFromAmount("")
-                          setFromSearchedToken(null)
-                          setFromCustomAddress("")
-                        }}
-                        className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg text-xs font-semibold text-white transition-all"
-                      >
-                        导入代币
-                      </button>
+                  <div className="fixed bottom-0 left-0 right-0 z-[201] bg-gradient-to-b from-gray-900 via-black to-gray-900 rounded-t-3xl border-t border-white/10 shadow-2xl max-h-[80vh] overflow-y-auto animate-slide-up">
+                    {/* Handle Bar */}
+                    <div className="flex justify-center pt-3 pb-2">
+                      <div className="w-12 h-1.5 bg-white/20 rounded-full" />
                     </div>
-                  )}
+                    
+                    <div className="px-6 py-4">
+                      <h3 className="text-xl font-bold text-white mb-4">选择代币</h3>
+                      
+                      <input
+                        type="text"
+                        value={fromCustomAddress}
+                        onChange={(e) => setFromCustomAddress(e.target.value)}
+                        placeholder="搜索名称或粘贴地址"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 mb-4 transition-colors"
+                      />
 
-                  <div className="mb-3">
-                    <div className="text-xs text-gray-500 mb-2 font-medium">常用代币</div>
-                    <div className="grid grid-cols-4 gap-2">
-                      {TOKENS.slice(0, 4).map(token => (
-                        <button
-                          key={token.symbol}
-                          onClick={() => {
-                            setFromToken(token)
-                            setShowFromSearch(false)
-                            setFromAmount("")
-                          }}
-                          className="px-2 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-medium transition-colors text-center"
-                        >
-                          {token.symbol}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    {TOKENS.map(token => (
-                      <button
-                        key={token.symbol}
-                        onClick={() => {
-                          setFromToken(token)
-                          setShowFromSearch(false)
-                          setFromAmount("")
-                        }}
-                        className="w-full px-2.5 py-2 rounded-lg text-left hover:bg-white/5 transition-colors flex items-center justify-between text-xs"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="relative w-6 h-6">
-                            {token.logo && (
-                              <img 
-                                src={token.logo} 
-                                alt={token.symbol} 
-                                className="w-6 h-6 rounded-full absolute inset-0"
-                                onError={(e) => e.currentTarget.style.display = 'none'}
-                              />
-                            )}
-                            <div className={`w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-[10px] font-bold ${token.logo ? 'opacity-0' : ''}`}>
-                              {token.symbol[0]}
+                      {fromSearchedToken && (
+                        <div className="mb-4 p-4 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-500/20">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-lg font-bold">
+                              {fromSearchedToken.symbol[0]}
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-sm font-semibold text-white">{fromSearchedToken.symbol}</div>
+                              <div className="text-xs text-gray-400">{fromSearchedToken.name}</div>
                             </div>
                           </div>
-                          <div>
-                            <div className="font-semibold text-white">{token.symbol}</div>
-                            <div className="text-[10px] text-gray-500">{token.isNative ? 'Native' : 'BEP-20'}</div>
-                          </div>
+                          <button
+                            onClick={() => {
+                              const newToken = {
+                                symbol: fromSearchedToken.symbol,
+                                address: fromSearchedToken.address,
+                                isNative: false,
+                                logo: `https://tokens.pancakeswap.finance/images/${fromSearchedToken.address}.png`,
+                              }
+                              setFromToken(newToken)
+                              setShowFromSearch(false)
+                              setFromAmount("")
+                              setFromSearchedToken(null)
+                              setFromCustomAddress("")
+                            }}
+                            className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl text-sm font-semibold text-white transition-all"
+                          >
+                            导入代币
+                          </button>
                         </div>
-                        {fromToken.symbol === token.symbol && (
-                          <span className="text-blue-400 text-xs">✓</span>
-                        )}
-                      </button>
-                    ))}
+                      )}
+
+                      <div className="mb-4">
+                        <div className="text-sm text-gray-400 mb-3 font-medium">常用代币</div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {TOKENS.slice(0, 4).map(token => (
+                            <button
+                              key={token.symbol}
+                              onClick={() => {
+                                setFromToken(token)
+                                setShowFromSearch(false)
+                                setFromAmount("")
+                              }}
+                              className="px-3 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-medium transition-colors text-center"
+                            >
+                              {token.symbol}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        {TOKENS.map(token => (
+                          <button
+                            key={token.symbol}
+                            onClick={() => {
+                              setFromToken(token)
+                              setShowFromSearch(false)
+                              setFromAmount("")
+                            }}
+                            className="w-full px-4 py-3 rounded-xl text-left hover:bg-white/5 transition-colors flex items-center justify-between text-sm"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="relative w-8 h-8">
+                                {token.logo && (
+                                  <img 
+                                    src={token.logo} 
+                                    alt={token.symbol} 
+                                    className="w-8 h-8 rounded-full absolute inset-0"
+                                    onError={(e) => e.currentTarget.style.display = 'none'}
+                                  />
+                                )}
+                                <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-sm font-bold ${token.logo ? 'opacity-0' : ''}`}>
+                                  {token.symbol[0]}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="font-semibold text-white">{token.symbol}</div>
+                                <div className="text-xs text-gray-500">{token.isNative ? 'Native' : 'BEP-20'}</div>
+                              </div>
+                            </div>
+                            {fromToken.symbol === token.symbol && (
+                              <span className="text-blue-400 text-base">✓</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </>
               )}
             </div>
 
@@ -585,7 +612,7 @@ export default function SwapPage() {
             <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-all">
               <div className="flex justify-between mb-1.5">
                 <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">To</span>
-                {toAmount && <span className="text-[10px] text-blue-400 font-medium">≈ ${toAmount}</span>}
+                {toAmount && <span className="text-[10px] text-blue-400 font-medium">≈ {parseFloat(toAmount).toFixed(6)} {toToken.symbol}</span>}
               </div>
               <div className="flex items-center justify-between gap-2">
                 <input
@@ -624,100 +651,115 @@ export default function SwapPage() {
 
               {/* Token Selector Dropdown */}
               {showToSearch && (
-                <div className="absolute top-full left-0 right-0 mt-1.5 bg-gray-900 rounded-xl p-3 z-[100] shadow-2xl max-h-[350px] overflow-y-auto border border-white/10">
-                  <input
-                    type="text"
-                    value={toCustomAddress}
-                    onChange={(e) => setToCustomAddress(e.target.value)}
-                    placeholder="搜索名称或粘贴地址"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 mb-3 transition-colors"
+                <>
+                  <div 
+                    className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm" 
+                    onClick={() => setShowToSearch(false)}
                   />
-
-                  {toSearchedToken && (
-                    <div className="mb-3 p-3 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-500/20">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-base font-bold">
-                          {toSearchedToken.symbol[0]}
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-sm font-semibold text-white">{toSearchedToken.symbol}</div>
-                          <div className="text-xs text-gray-400">{toSearchedToken.name}</div>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          const newToken = {
-                            symbol: toSearchedToken.symbol,
-                            address: toSearchedToken.address,
-                            isNative: false,
-                            logo: `https://tokens.pancakeswap.finance/images/${toSearchedToken.address}.png`,
-                          }
-                          setToToken(newToken)
-                          setShowToSearch(false)
-                          setToSearchedToken(null)
-                          setToCustomAddress("")
-                        }}
-                        className="w-full py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg text-xs font-semibold text-white transition-all"
-                      >
-                        导入代币
-                      </button>
+                  <div className="fixed bottom-0 left-0 right-0 z-[201] bg-gradient-to-b from-gray-900 via-black to-gray-900 rounded-t-3xl border-t border-white/10 shadow-2xl max-h-[80vh] overflow-y-auto animate-slide-up">
+                    {/* Handle Bar */}
+                    <div className="flex justify-center pt-3 pb-2">
+                      <div className="w-12 h-1.5 bg-white/20 rounded-full" />
                     </div>
-                  )}
+                    
+                    <div className="px-6 py-4">
+                      <h3 className="text-xl font-bold text-white mb-4">选择代币</h3>
+                      
+                      <input
+                        type="text"
+                        value={toCustomAddress}
+                        onChange={(e) => setToCustomAddress(e.target.value)}
+                        placeholder="搜索名称或粘贴地址"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 mb-4 transition-colors"
+                      />
 
-                  <div className="mb-3">
-                    <div className="text-xs text-gray-500 mb-2 font-medium">常用代币</div>
-                    <div className="grid grid-cols-4 gap-2">
-                      {TOKENS.slice(0, 4).map(token => (
-                        <button
-                          key={token.symbol}
-                          onClick={() => {
-                            setToToken(token)
-                            setShowToSearch(false)
-                          }}
-                          className="px-2 py-2 bg-white/5 hover:bg-white/10 rounded-lg text-xs font-medium transition-colors text-center"
-                        >
-                          {token.symbol}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    {TOKENS.map(token => (
-                      <button
-                        key={token.symbol}
-                        onClick={() => {
-                          setToToken(token)
-                          setShowToSearch(false)
-                        }}
-                        className="w-full px-3 py-2.5 rounded-lg text-left hover:bg-white/5 transition-colors flex items-center justify-between text-sm"
-                      >
-                        <div className="flex items-center gap-2.5">
-                          <div className="relative w-7 h-7">
-                            {token.logo && (
-                              <img 
-                                src={token.logo} 
-                                alt={token.symbol} 
-                                className="w-7 h-7 rounded-full absolute inset-0"
-                                onError={(e) => e.currentTarget.style.display = 'none'}
-                              />
-                            )}
-                            <div className={`w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold ${token.logo ? 'opacity-0' : ''}`}>
-                              {token.symbol[0]}
+                      {toSearchedToken && (
+                        <div className="mb-4 p-4 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-xl border border-blue-500/20">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-lg font-bold">
+                              {toSearchedToken.symbol[0]}
+                            </div>
+                            <div className="flex-1">
+                              <div className="text-sm font-semibold text-white">{toSearchedToken.symbol}</div>
+                              <div className="text-xs text-gray-400">{toSearchedToken.name}</div>
                             </div>
                           </div>
-                          <div>
-                            <div className="font-semibold text-white">{token.symbol}</div>
-                            <div className="text-xs text-gray-500">{token.isNative ? 'Native' : 'BEP-20'}</div>
-                          </div>
+                          <button
+                            onClick={() => {
+                              const newToken = {
+                                symbol: toSearchedToken.symbol,
+                                address: toSearchedToken.address,
+                                isNative: false,
+                                logo: `https://tokens.pancakeswap.finance/images/${toSearchedToken.address}.png`,
+                              }
+                              setToToken(newToken)
+                              setShowToSearch(false)
+                              setToSearchedToken(null)
+                              setToCustomAddress("")
+                            }}
+                            className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl text-sm font-semibold text-white transition-all"
+                          >
+                            导入代币
+                          </button>
                         </div>
-                        {toToken.symbol === token.symbol && (
-                          <span className="text-blue-400">✓</span>
-                        )}
-                      </button>
-                    ))}
+                      )}
+
+                      <div className="mb-4">
+                        <div className="text-sm text-gray-400 mb-3 font-medium">常用代币</div>
+                        <div className="grid grid-cols-4 gap-2">
+                          {TOKENS.slice(0, 4).map(token => (
+                            <button
+                              key={token.symbol}
+                              onClick={() => {
+                                setToToken(token)
+                                setShowToSearch(false)
+                              }}
+                              className="px-3 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-sm font-medium transition-colors text-center"
+                            >
+                              {token.symbol}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        {TOKENS.map(token => (
+                          <button
+                            key={token.symbol}
+                            onClick={() => {
+                              setToToken(token)
+                              setShowToSearch(false)
+                            }}
+                            className="w-full px-4 py-3 rounded-xl text-left hover:bg-white/5 transition-colors flex items-center justify-between text-sm"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="relative w-8 h-8">
+                                {token.logo && (
+                                  <img 
+                                    src={token.logo} 
+                                    alt={token.symbol} 
+                                    className="w-8 h-8 rounded-full absolute inset-0"
+                                    onError={(e) => e.currentTarget.style.display = 'none'}
+                                  />
+                                )}
+                                <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-sm font-bold ${token.logo ? 'opacity-0' : ''}`}>
+                                  {token.symbol[0]}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="font-semibold text-white">{token.symbol}</div>
+                                <div className="text-xs text-gray-500">{token.isNative ? 'Native' : 'BEP-20'}</div>
+                              </div>
+                            </div>
+                            {toToken.symbol === token.symbol && (
+                              <span className="text-blue-400 text-base">✓</span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </>
               )}
             </div>
 
@@ -752,7 +794,11 @@ export default function SwapPage() {
               <div className="flex justify-between items-center text-xs">
                 <span className="text-gray-400">价格</span>
                 <span className="text-white font-medium">
-                  1 {fromToken.symbol} ≈ {liquidityInfo.price.toFixed(6)} {toToken.symbol}
+                  {amountsOut && amountsOut.length > 1 ? (
+                    `1 ${fromToken.symbol} ≈ ${(parseFloat(formatEther(amountsOut[1])) / parseFloat(fromAmount)).toFixed(6)} ${toToken.symbol}`
+                  ) : (
+                    `1 ${fromToken.symbol} ≈ ${liquidityInfo.price.toFixed(6)} ${toToken.symbol}`
+                  )}
                 </span>
               </div>
               <div className="flex justify-between items-center text-xs">
@@ -763,7 +809,12 @@ export default function SwapPage() {
               </div>
               <div className="flex justify-between items-center text-xs">
                 <span className="text-gray-400">滑点</span>
-                <span className="text-blue-400 font-medium">{slippage}%</span>
+                <button 
+                  onClick={() => setShowSlippageModal(true)}
+                  className="text-blue-400 font-medium hover:text-blue-300 transition-colors"
+                >
+                  {slippage}%
+                </button>
               </div>
             </div>
           )}
@@ -790,6 +841,13 @@ export default function SwapPage() {
             >
               输入金额
             </button>
+          ) : !hasEnoughBalance ? (
+            <button
+              disabled
+              className="w-full py-3.5 bg-red-500/20 rounded-xl font-bold text-red-400 cursor-not-allowed border border-red-500/30 text-sm"
+            >
+              余额不足
+            </button>
           ) : !isApproved && !fromToken.isNative ? (
             <button
               onClick={handleApprove}
@@ -809,6 +867,85 @@ export default function SwapPage() {
           )}
         </div>
       </div>
+
+      {/* Slippage Settings Bottom Sheet */}
+      {showSlippageModal && (
+        <>
+          <div 
+            className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm" 
+            onClick={() => setShowSlippageModal(false)}
+          />
+          <div className="fixed bottom-0 left-0 right-0 z-[201] bg-gradient-to-b from-gray-900 via-black to-gray-900 rounded-t-3xl border-t border-white/10 shadow-2xl max-h-[80vh] overflow-y-auto animate-slide-up">
+            {/* Handle Bar */}
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="w-12 h-1.5 bg-white/20 rounded-full" />
+            </div>
+            
+            <div className="px-6 py-4">
+              <h3 className="text-xl font-bold text-white mb-6">滑点设置</h3>
+              
+              {/* Preset Options */}
+              <div className="grid grid-cols-4 gap-3 mb-6">
+                {[0.1, 0.5, 1.0, 2.0].map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => {
+                      setSlippage(value)
+                      setCustomSlippage('')
+                    }}
+                    className={`py-3 rounded-xl font-semibold transition-all ${
+                      slippage === value && !customSlippage
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                    }`}
+                  >
+                    {value}%
+                  </button>
+                ))}
+              </div>
+              
+              {/* Custom Input */}
+              <div className="mb-6">
+                <label className="text-sm text-gray-400 mb-2 block">自定义滑点</label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    value={customSlippage !== '' ? customSlippage : (slippage === 0.1 || slippage === 0.5 || slippage === 1.0 || slippage === 2.0 ? '' : slippage.toString())}
+                    onChange={(e) => {
+                      const inputVal = e.target.value
+                      setCustomSlippage(inputVal)
+                      const val = parseFloat(inputVal)
+                      if (!isNaN(val) && val > 0 && val <= 50) {
+                        setSlippage(val)
+                      }
+                    }}
+                    placeholder="输入滑点百分比"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">%</span>
+                </div>
+              </div>
+              
+              {/* Warning */}
+              {slippage > 5 && (
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-6">
+                  <p className="text-yellow-400 text-sm">
+                    ⚠️ 高滑点可能导致较差的交易价格
+                  </p>
+                </div>
+              )}
+              
+              {/* Confirm Button */}
+              <button
+                onClick={() => setShowSlippageModal(false)}
+                className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl font-bold text-white transition-all active:scale-[0.98]"
+              >
+                确认
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

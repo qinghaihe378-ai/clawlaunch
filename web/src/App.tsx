@@ -6,10 +6,6 @@ import { bsc } from "wagmi/chains"
 
 import { getPreferredInjectedProvider } from "./embeddedWalletBridge"
 
-const MarketPage = lazy(() => import("./pages/MarketPage"))
-const CreateTokenPage = lazy(() => import("./pages/CreateTokenPage"))
-const TokenPage = lazy(() => import("./pages/TokenPage"))
-const PortfolioPage = lazy(() => import("./pages/PortfolioPage"))
 const SwapPage = lazy(() => import("./pages/SwapPage"))
 const PoolPage = lazy(() => import("./pages/PoolPage"))
 
@@ -68,65 +64,32 @@ function Header() {
             </div>
             <div className="mt-4 grid gap-3">
               <Link
-                to="/"
-                className="glass-card rounded-2xl px-5 py-4 text-base font-semibold text-neutral-100 hover:bg-white/10 transition-all duration-200"
-                onClick={() => setMenuOpen(false)}
-              >
-                📊 行情
-              </Link>
-              <Link
-                to="/create"
-                className="glass-card rounded-2xl px-5 py-4 text-base font-semibold text-neutral-100 hover:bg-white/10 transition-all duration-200"
-                onClick={() => setMenuOpen(false)}
-              >
-                🚀 发行
-              </Link>
-              <Link
-                to="/portfolio"
-                className="glass-card rounded-2xl px-5 py-4 text-base font-semibold text-neutral-100 hover:bg-white/10 transition-all duration-200"
-                onClick={() => setMenuOpen(false)}
-              >
-                💼 持仓
-              </Link>
-              <Link
                 to="/swap"
-                className="glass-card rounded-2xl px-5 py-4 text-base font-semibold text-neutral-100 hover:bg-white/10 transition-all duration-200"
-                onClick={() => setMenuOpen(false)}
+                className="glass-card rounded-2xl px-5 py-4 text-base font-semibold text-neutral-100 hover:bg-white/10 transition-all duration-200 flex items-center gap-3"
+                onClick={() => {
+                  setMenuOpen(false)
+                  // Clear hash when clicking Swap
+                  if (window.location.hash) {
+                    window.history.replaceState(null, '', window.location.pathname)
+                  }
+                }}
               >
-                💧 Swap
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M7 10h14l-4-4"/>
+                  <path d="M17 14H3l4 4"/>
+                </svg>
+                <span>交换</span>
               </Link>
               <Link
                 to="/pool"
-                className="glass-card rounded-2xl px-5 py-4 text-base font-semibold text-neutral-100 hover:bg-white/10 transition-all duration-200"
+                className="glass-card rounded-2xl px-5 py-4 text-base font-semibold text-neutral-100 hover:bg-white/10 transition-all duration-200 flex items-center gap-3"
                 onClick={() => setMenuOpen(false)}
               >
-                🏊 流动性
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/>
+                </svg>
+                <span>流动性</span>
               </Link>
-              {address ? (
-                <button
-                  type="button"
-                  className="glass-card rounded-2xl px-5 py-4 text-base font-semibold text-neutral-200 hover:bg-white/10 transition-all duration-200 text-left"
-                  onClick={() => { disconnect(); setMenuOpen(false); }}
-                >
-                  🔓 断开连接 {shortAddr(address)}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  className="glass-card rounded-2xl px-5 py-4 text-base font-semibold text-white bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-500/30 hover:to-purple-500/30 transition-all duration-200 text-left disabled:opacity-60"
-                  disabled={isPending || (!hasInjected && !isInIframe)}
-                  onClick={() => {
-                    if (!hasInjected && isInIframe) {
-                      requestTopOpen()
-                      return
-                    }
-                    connectInjected()
-                    setMenuOpen(false)
-                  }}
-                >
-                  {isPending ? "⏳ 连接中…" : "🔗 连接钱包"}
-                </button>
-              )}
               <a
                 href="https://x.com/CLAWDEXAI"
                 target="_blank"
@@ -246,42 +209,24 @@ function Header() {
     >
       <div className="mx-auto max-w-md px-4 py-3">
         <div className="flex items-center gap-3">
+          <Link to="/" className="text-3xl font-bold hover:opacity-80 transition-opacity">
+            🦞
+          </Link>
           <button
             type="button"
             aria-label="菜单"
-            className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-neutral-200 hover:bg-white/10 transition-all duration-200"
+            className="p-2 text-neutral-300 hover:text-white transition-all duration-200 rounded-lg hover:bg-white/5"
             onClick={() => setMenuOpen(true)}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
               <path
                 d="M4 6h16M4 12h16M4 18h16"
                 stroke="currentColor"
-                strokeWidth="2"
+                strokeWidth="2.5"
                 strokeLinecap="round"
               />
             </svg>
           </button>
-          <Link to="/" className="text-xl font-bold tracking-wide gradient-text hover:opacity-80 transition-opacity">
-            🦞 claw
-          </Link>
-          <nav className="flex items-center gap-4">
-            <Link to="/" className="text-sm font-medium text-neutral-300 hover:text-white transition-colors relative group">
-              行情
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 group-hover:w-full transition-all duration-300"></span>
-            </Link>
-            <Link to="/swap" className="text-sm font-medium text-neutral-300 hover:text-white transition-colors relative group">
-              Swap
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 group-hover:w-full transition-all duration-300"></span>
-            </Link>
-            <Link to="/create" className="text-sm font-medium text-neutral-300 hover:text-white transition-colors relative group">
-              发行
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 group-hover:w-full transition-all duration-300"></span>
-            </Link>
-            <Link to="/portfolio" className="text-sm font-medium text-neutral-300 hover:text-white transition-colors relative group">
-              持仓
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-blue-400 to-purple-400 group-hover:w-full transition-all duration-300"></span>
-            </Link>
-          </nav>
         </div>
       </div>
       {connectError && (
@@ -309,10 +254,7 @@ export default function App() {
         <div className="mx-auto max-w-md px-4 py-6 pb-[calc(2.5rem+var(--safe-bottom))]">
           <Suspense fallback={<RouteSkeleton />}>
             <Routes>
-              <Route path="/" element={<MarketPage />} />
-              <Route path="/create" element={<CreateTokenPage />} />
-              <Route path="/token/:token" element={<TokenPage />} />
-              <Route path="/portfolio" element={<PortfolioPage />} />
+              <Route path="/" element={<SwapPage />} />
               <Route path="/swap" element={<SwapPage />} />
               <Route path="/pool" element={<PoolPage />} />
             </Routes>
