@@ -623,7 +623,7 @@ export default function PoolPage() {
           {/* Token A Input */}
           <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-all group">
             <div className="flex justify-between mb-1.5">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Token A</span>
+              <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">Token A</span>
               {address && !poolTokenA.isNative && poolTokenABalance !== undefined && poolTokenABalance > 0n && (
                 <button 
                   onClick={() => setAmountA(formatEther(poolTokenABalance))}
@@ -639,7 +639,7 @@ export default function PoolPage() {
                 value={amountA}
                 onChange={(e) => setAmountA(e.target.value)}
                 placeholder="0.0"
-                className="flex-1 bg-transparent text-2xl font-light text-white placeholder-gray-700 focus:outline-none min-w-0"
+                className="flex-1 bg-transparent text-2xl font-light text-white placeholder-gray-500 focus:outline-none min-w-0"
               />
               <button
                 onClick={() => {
@@ -779,7 +779,7 @@ export default function PoolPage() {
           {/* Token B Input */}
           <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-all group">
             <div className="flex justify-between mb-1.5">
-              <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">Token B</span>
+              <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">Token B</span>
               {address && !poolTokenB.isNative && poolTokenBBalance !== undefined && poolTokenBBalance > 0n && (
                 <button 
                   onClick={() => setAmountB(formatEther(poolTokenBBalance))}
@@ -795,7 +795,7 @@ export default function PoolPage() {
                 value={amountB}
                 onChange={(e) => setAmountB(e.target.value)}
                 placeholder="0.0"
-                className="flex-1 bg-transparent text-2xl font-light text-white placeholder-gray-700 focus:outline-none min-w-0"
+                className="flex-1 bg-transparent text-2xl font-light text-white placeholder-gray-500 focus:outline-none min-w-0"
               />
               <button
                 onClick={() => {
@@ -948,7 +948,7 @@ export default function PoolPage() {
                 </div>
               )}
               <div className="flex justify-between items-center text-xs">
-                <span className="text-gray-400">滑点</span>
+                <span className="text-gray-300">滑点</span>
                 <button 
                   onClick={() => setShowSlippageModal(true)}
                   className="text-blue-400 font-medium hover:text-blue-300 transition-colors"
@@ -957,7 +957,7 @@ export default function PoolPage() {
                 </button>
               </div>
               <div className="flex justify-between items-center text-xs">
-                <span className="text-gray-400">池子份额</span>
+                <span className="text-gray-300">池子份额</span>
                 <span className="text-white font-medium">&lt; 0.001%</span>
               </div>
             </div>

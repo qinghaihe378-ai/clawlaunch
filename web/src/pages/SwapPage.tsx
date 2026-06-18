@@ -463,7 +463,7 @@ export default function SwapPage() {
             {/* From Token Card */}
             <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-all group">
               <div className="flex justify-between mb-1.5">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">From</span>
+                <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">From</span>
                 {address && !fromToken.isNative && (
                   <div className="flex items-center gap-2">
                     <button 
@@ -472,13 +472,13 @@ export default function SwapPage() {
                     >
                       最大
                     </button>
-                    <span className="text-[10px] text-gray-500">
+                    <span className="text-[10px] text-gray-400">
                       余额: {parseFloat(formattedBalance).toFixed(4)}
                     </span>
                   </div>
                 )}
                 {address && fromToken.isNative && (
-                  <span className="text-[10px] text-gray-500">
+                  <span className="text-[10px] text-gray-400">
                     BNB余额需保留Gas费
                   </span>
                 )}
@@ -489,7 +489,7 @@ export default function SwapPage() {
                   value={fromAmount}
                   onChange={(e) => setFromAmount(e.target.value)}
                   placeholder="0.0"
-                  className="flex-1 bg-transparent text-2xl font-light text-white placeholder-gray-700 focus:outline-none min-w-0"
+                  className="flex-1 bg-transparent text-2xl font-light text-white placeholder-gray-500 focus:outline-none min-w-0"
                 />
                 <button
                   onClick={() => {
@@ -673,7 +673,7 @@ export default function SwapPage() {
             {/* To Token Card */}
             <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-all">
               <div className="flex justify-between mb-1.5">
-                <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">To</span>
+                <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">To</span>
                 {toAmount && <span className="text-[10px] text-blue-400 font-medium">≈ {parseFloat(toAmount).toFixed(6)} {toToken.symbol}</span>}
               </div>
               <div className="flex items-center justify-between gap-2">
@@ -682,7 +682,7 @@ export default function SwapPage() {
                   value={toAmount}
                   readOnly
                   placeholder="0.0"
-                  className="flex-1 bg-transparent text-2xl font-light text-white placeholder-gray-700 focus:outline-none min-w-0"
+                  className="flex-1 bg-transparent text-2xl font-light text-white placeholder-gray-500 focus:outline-none min-w-0"
                 />
                 <button
                   onClick={() => {
@@ -864,7 +864,7 @@ export default function SwapPage() {
           {liquidityInfo && fromAmount && parseFloat(fromAmount) > 0 && (
             <div className="bg-gradient-to-br from-gray-800/30 to-gray-900/30 rounded-xl p-3 border border-white/5 space-y-2">
               <div className="flex justify-between items-center text-xs">
-                <span className="text-gray-400">价格</span>
+                <span className="text-gray-300">价格</span>
                 <span className="text-white font-medium">
                   {amountsOut && amountsOut.length > 1 ? (
                     `1 ${fromToken.symbol} ≈ ${(parseFloat(formatEther(amountsOut[1])) / parseFloat(fromAmount)).toFixed(6)} ${toToken.symbol}`
@@ -874,13 +874,13 @@ export default function SwapPage() {
                 </span>
               </div>
               <div className="flex justify-between items-center text-xs">
-                <span className="text-gray-400">流动性</span>
+                <span className="text-gray-300">流动性</span>
                 <span className="text-white font-medium">
                   ${liquidityInfo.liquidity.toLocaleString(undefined, { maximumFractionDigits: 2 })}
                 </span>
               </div>
               <div className="flex justify-between items-center text-xs">
-                <span className="text-gray-400">滑点</span>
+                <span className="text-gray-300">滑点</span>
                 <button 
                   onClick={() => setShowSlippageModal(true)}
                   className="text-blue-400 font-medium hover:text-blue-300 transition-colors"
