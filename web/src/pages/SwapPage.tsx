@@ -203,7 +203,7 @@ export default function SwapPage() {
   })
 
   // Check allowance
-  const { data: allowance } = useReadContract({
+  const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: isAddress(fromToken.address) ? fromToken.address as Address : undefined,
     abi: ERC20_ABI,
     functionName: "allowance",
@@ -339,6 +339,16 @@ export default function SwapPage() {
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash: txHash,
   })
+
+  // Refetch allowance after approval transaction is confirmed
+  useEffect(() => {
+    if (isConfirmed && !isSwapping) {
+      // Wait a bit for the blockchain to update
+      setTimeout(() => {
+        refetchAllowance()
+      }, 1000)
+    }
+  }, [isConfirmed, isSwapping, refetchAllowance])
 
   const handleApprove = () => {
     if (!address || !fromAmount) return
