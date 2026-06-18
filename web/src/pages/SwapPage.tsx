@@ -504,14 +504,18 @@ export default function SwapPage() {
                         <img 
                           src={fromToken.logo} 
                           alt={fromToken.symbol} 
-                          className="w-5 h-5 rounded-full absolute inset-0 object-cover"
+                          className="w-5 h-5 rounded-full"
                           onError={(e) => {
-                            e.currentTarget.style.display = 'none'
-                            const fallback = e.currentTarget.nextElementSibling as HTMLElement
-                            if (fallback) fallback.style.opacity = '1'
+                            const target = e.target as HTMLImageElement
+                            target.style.display = 'none'
+                            const parent = target.parentElement
+                            if (parent) {
+                              const fallback = parent.querySelector('.token-fallback') as HTMLElement
+                              if (fallback) fallback.style.display = 'flex'
+                            }
                           }}
                         />
-                        <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold opacity-0 transition-opacity">
+                        <div className="token-fallback w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[10px] font-bold" style={{display: 'none'}}>
                           {fromToken.symbol[0]}
                         </div>
                       </>
@@ -624,14 +628,18 @@ export default function SwapPage() {
                                     <img 
                                       src={token.logo} 
                                       alt={token.symbol} 
-                                      className="w-8 h-8 rounded-full absolute inset-0 object-cover"
+                                      className="w-8 h-8 rounded-full"
                                       onError={(e) => {
-                                        e.currentTarget.style.display = 'none'
-                                        const fallback = e.currentTarget.nextElementSibling as HTMLElement
-                                        if (fallback) fallback.style.opacity = '1'
+                                        const target = e.target as HTMLImageElement
+                                        target.style.display = 'none'
+                                        const parent = target.parentElement
+                                        if (parent) {
+                                          const fallback = parent.querySelector('.token-fallback-list') as HTMLElement
+                                          if (fallback) fallback.style.display = 'flex'
+                                        }
                                       }}
                                     />
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold opacity-0 transition-opacity">
+                                    <div className="token-fallback-list w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold" style={{display: 'none'}}>
                                       {token.symbol[0]}
                                     </div>
                                   </>
@@ -691,18 +699,32 @@ export default function SwapPage() {
                   }}
                   className="flex-shrink-0 flex items-center gap-1.5 bg-gray-700 hover:bg-gray-600 active:scale-95 px-2.5 py-1.5 rounded-lg text-white font-semibold transition-all border border-white/10 whitespace-nowrap text-xs"
                 >
-                  <div className="relative w-5 h-5">
-                    {toToken.logo && (
-                      <img 
-                        src={toToken.logo} 
-                        alt={toToken.symbol} 
-                        className="w-5 h-5 rounded-full absolute inset-0"
-                        onError={(e) => e.currentTarget.style.display = 'none'}
-                      />
+                  <div className="relative w-5 h-5 flex-shrink-0">
+                    {toToken.logo ? (
+                      <>
+                        <img 
+                          src={toToken.logo} 
+                          alt={toToken.symbol} 
+                          className="w-5 h-5 rounded-full"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement
+                            target.style.display = 'none'
+                            const parent = target.parentElement
+                            if (parent) {
+                              const fallback = parent.querySelector('.token-fallback-to') as HTMLElement
+                              if (fallback) fallback.style.display = 'flex'
+                            }
+                          }}
+                        />
+                        <div className="token-fallback-to w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-[10px] font-bold" style={{display: 'none'}}>
+                          {toToken.symbol[0]}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-[10px] font-bold">
+                        {toToken.symbol[0]}
+                      </div>
                     )}
-                    <div className={`w-5 h-5 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-[10px] font-bold ${toToken.logo ? 'opacity-0' : ''}`}>
-                      {toToken.symbol[0]}
-                    </div>
                   </div>
                   <span>{toToken.symbol}</span>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="opacity-70">
@@ -801,14 +823,18 @@ export default function SwapPage() {
                                     <img 
                                       src={token.logo} 
                                       alt={token.symbol} 
-                                      className="w-8 h-8 rounded-full absolute inset-0 object-cover"
+                                      className="w-8 h-8 rounded-full"
                                       onError={(e) => {
-                                        e.currentTarget.style.display = 'none'
-                                        const fallback = e.currentTarget.nextElementSibling as HTMLElement
-                                        if (fallback) fallback.style.opacity = '1'
+                                        const target = e.target as HTMLImageElement
+                                        target.style.display = 'none'
+                                        const parent = target.parentElement
+                                        if (parent) {
+                                          const fallback = parent.querySelector('.token-fallback-list') as HTMLElement
+                                          if (fallback) fallback.style.display = 'flex'
+                                        }
                                       }}
                                     />
-                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold opacity-0 transition-opacity">
+                                    <div className="token-fallback-list w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold" style={{display: 'none'}}>
                                       {token.symbol[0]}
                                     </div>
                                   </>
