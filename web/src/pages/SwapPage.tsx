@@ -448,9 +448,18 @@ export default function SwapPage() {
   
   // Execute swap
   const { writeContract: swap, isPending: isSwapping, data: txHash } = useWriteContract()
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+  const { isLoading: isConfirming, isSuccess: isConfirmed, data: receipt } = useWaitForTransactionReceipt({
     hash: txHash,
   })
+
+  // Check transaction status and show error if reverted
+  useEffect(() => {
+    if (receipt && receipt.status === 'reverted') {
+      console.error('❌ 交易失败 (Reverted)')
+      console.error('交易哈希:', txHash)
+      alert('交易失败！可能原因：\n1. 滑点设置过低\n2. 流动性不足\n3. Gas 不足\n4. 代币合约有特殊限制\n\n请查看控制台日志获取详细信息。')
+    }
+  }, [receipt, txHash])
 
   // Refetch allowance after approval transaction is confirmed
   useEffect(() => {
