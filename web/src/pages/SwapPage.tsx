@@ -148,6 +148,7 @@ const ERC20_ABI = [
 const ROUTER_ADDRESS = "0x10ED43C718714eb63d5aA57B78B54704E256024E" as Address
 const FACTORY_ADDRESS = "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73" as Address
 const WBNB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c" as Address
+const USDC = "0x8AC76a51cc950d9822D68b83Fe1Ad97B32Cd580d" as Address
 
 // PancakeSwap V2 Factory ABI
 const FACTORY_ABI = [
@@ -327,6 +328,7 @@ export default function SwapPage() {
       WBNB,
       TOKENS.find((token) => token.symbol === "USDT")?.address,
       TOKENS.find((token) => token.symbol === "BUSD")?.address,
+      USDC,
       TOKENS.find((token) => token.symbol === "CAKE")?.address,
     ].filter((address): address is Address => !!address)
 
@@ -342,6 +344,13 @@ export default function SwapPage() {
     for (const intermediate of intermediaries) {
       if (intermediate === fromAddress || intermediate === toAddress) continue
       addPath([fromAddress, intermediate, toAddress])
+    }
+    for (const firstIntermediate of intermediaries) {
+      if (firstIntermediate === fromAddress || firstIntermediate === toAddress) continue
+      for (const secondIntermediate of intermediaries) {
+        if (secondIntermediate === fromAddress || secondIntermediate === toAddress || secondIntermediate === firstIntermediate) continue
+        addPath([fromAddress, firstIntermediate, secondIntermediate, toAddress])
+      }
     }
 
     return Array.from(pathMap.values())
@@ -688,7 +697,6 @@ export default function SwapPage() {
     if (receipt && receipt.status === 'reverted') {
       console.error('❌ 交易失败 (Reverted)')
       console.error('交易哈希:', txHash)
-      alert('交易失败！可能原因：\n1. 滑点设置过低\n2. 流动性不足\n3. Gas 不足\n4. 代币合约有特殊限制\n\n请查看控制台日志获取详细信息。')
     }
   }, [fromToken.address, fromToken.symbol, receipt, toToken.address, toToken.symbol, txHash])
 
@@ -696,7 +704,6 @@ export default function SwapPage() {
   useEffect(() => {
     if (isTxError) {
       console.error('❌ 交易错误:', txError)
-      alert(`交易出错：${txError?.message || '未知错误'}\n\n请检查网络连接或稍后重试。`)
     }
   }, [allowance, balance, fromAmount, fromToken, isTxError, toAmount, toToken, txError])
 
@@ -837,11 +844,15 @@ export default function SwapPage() {
       })
       
       const slippageBps = BigInt(Math.floor(slippage * 100)) // Convert to basis points (e.g., 0.5% = 50 bps)
-      const amountOutMin = amountsOutValue * (BigInt(10000) - slippageBps) / BigInt(10000)
+      const shouldUseZeroMinOut = !fromToken.isNative && fromDec === 0
+      const amountOutMin = shouldUseZeroMinOut
+        ? 0n
+        : amountsOutValue * (BigInt(10000) - slippageBps) / BigInt(10000)
       
       console.log("[DEBUG] 最终参数:", {
         slippage: `${slippage}%`,
         slippageBps: slippageBps.toString(),
+        zeroMinOut: shouldUseZeroMinOut,
         amountOutMin: amountOutMin.toString(),
         formatted: formatUnits(amountOutMin, toDec)
       })
@@ -891,7 +902,6 @@ export default function SwapPage() {
       }
     } catch (error) {
       console.error("Swap 调用失败:", error)
-      alert(`交易发起失败: ${error instanceof Error ? error.message : '未知错误'}\n\n请查看控制台日志获取详细信息。`)
     }
   }
 
