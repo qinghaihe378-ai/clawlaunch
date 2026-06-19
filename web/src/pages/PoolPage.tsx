@@ -629,12 +629,17 @@ export default function PoolPage() {
                   onClick={() => setAmountA(formatEther(poolTokenABalance))}
                   className="text-[10px] text-white font-bold hover:text-blue-300 transition-colors"
                 >
-                  Balance: {parseFloat(formatEther(poolTokenABalance)).toFixed(4)}
+                  余额: {parseFloat(formatEther(poolTokenABalance)).toFixed(4)}
                 </button>
               )}
               {address && !poolTokenA.isNative && poolTokenABalance === undefined && (
                 <span className="text-[10px] text-white font-bold">
-                  Balance: 0.0000
+                  余额: 0.0000
+                </span>
+              )}
+              {address && poolTokenA.isNative && (
+                <span className="text-[10px] text-white font-bold">
+                  BNB余额需保留Gas费
                 </span>
               )}
             </div>
@@ -790,12 +795,17 @@ export default function PoolPage() {
                   onClick={() => setAmountB(formatEther(poolTokenBBalance))}
                   className="text-[10px] text-white font-bold hover:text-blue-300 transition-colors"
                 >
-                  Balance: {parseFloat(formatEther(poolTokenBBalance)).toFixed(4)}
+                  余额: {parseFloat(formatEther(poolTokenBBalance)).toFixed(4)}
                 </button>
               )}
               {address && !poolTokenB.isNative && poolTokenBBalance === undefined && (
                 <span className="text-[10px] text-white font-bold">
-                  Balance: 0.0000
+                  余额: 0.0000
+                </span>
+              )}
+              {address && poolTokenB.isNative && (
+                <span className="text-[10px] text-white font-bold">
+                  BNB余额需保留Gas费
                 </span>
               )}
             </div>
