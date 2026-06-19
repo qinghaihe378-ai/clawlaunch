@@ -198,13 +198,27 @@ export default function SwapPage() {
   const getFromDecimals = (): number => {
     if (fromToken.isNative) return 18
     // If we got decimals from chain, use it. Otherwise default to 18.
-    return fromDecimals !== undefined ? Number(fromDecimals) : 18
+    const decimals = fromDecimals !== undefined ? Number(fromDecimals) : 18
+    console.log(`[DEBUG] From Token ${fromToken.symbol}:`, {
+      address: fromToken.address,
+      queriedDecimals: fromDecimals,
+      usedDecimals: decimals,
+      isDefault: fromDecimals === undefined
+    })
+    return decimals
   }
   
   const getToDecimals = (): number => {
     if (toToken.isNative) return 18
     // If we got decimals from chain, use it. Otherwise default to 18.
-    return toDecimals !== undefined ? Number(toDecimals) : 18
+    const decimals = toDecimals !== undefined ? Number(toDecimals) : 18
+    console.log(`[DEBUG] To Token ${toToken.symbol}:`, {
+      address: toToken.address,
+      queriedDecimals: toDecimals,
+      usedDecimals: decimals,
+      isDefault: toDecimals === undefined
+    })
+    return decimals
   }
   
   // Check if we can proceed with swap

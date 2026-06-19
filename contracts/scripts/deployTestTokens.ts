@@ -14,9 +14,9 @@ async function main() {
 
   // 部署三个不同精度的代币
   const tokens = [
-    { name: "Test Token 0", symbol: "TT0", decimals: 0, supply: 1000000 },
-    { name: "Test Token 9", symbol: "TT9", decimals: 9, supply: 1000000 },
-    { name: "Test Token 18", symbol: "TT18", decimals: 18, supply: 1000000 },
+    { name: "Zero Decimal Token", symbol: "ZERO", decimals: 0, supply: 1000000000000000000000000000n }, // 1 + 26个0
+    { name: "Nine Decimal Token", symbol: "NINE", decimals: 9, supply: 1000000000n }, // 10亿
+    { name: "Eighteen Decimal Token", symbol: "EIGHTEEN", decimals: 18, supply: 1000000000n }, // 10亿
   ]
 
   const deployedAddresses: string[] = []
