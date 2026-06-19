@@ -1295,12 +1295,6 @@ export default function SwapPage() {
             </div>
           )}
 
-          {isConfirmed && (
-            <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-center backdrop-blur-sm">
-              <span className="text-xs text-green-400 font-medium">✅ 交易成功！</span>
-            </div>
-          )}
-
           {/* Liquidity Info */}
           {liquidityInfo && parsedFromAmount !== null && parsedFromAmount > 0n && (
             <div className="bg-gradient-to-br from-gray-800/30 to-gray-900/30 rounded-xl p-3 border border-white/5 space-y-2">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useAccount, useSwitchChain, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance } from "wagmi"
 import { parseUnits, formatUnits, formatEther, type Address, isAddress } from "viem"
 import { bsc } from "wagmi/chains"
@@ -229,6 +229,42 @@ export default function PoolPage() {
   // Searched token info
   const [fromSearchedToken, setFromSearchedToken] = useState<TokenOption | null>(null)
   const [toSearchedToken, setToSearchedToken] = useState<TokenOption | null>(null)
+
+  const sanitizeAmountInput = (value: string, decimals: number): string => {
+    if (decimals !== 0) return value
+    return value.replace(/[^\d]/g, "")
+  }
+
+  const parseAmountValue = (value: string, decimals: number): bigint | null => {
+    if (!value) return null
+    try {
+      return parseUnits(value, decimals)
+    } catch {
+      return null
+    }
+  }
+
+  const formatAmountForDisplay = (value: bigint, decimals: number, fractionDigits = 6): string => {
+    const formatted = formatUnits(value, decimals)
+    if (decimals === 0) return formatted
+    return parseFloat(formatted).toFixed(fractionDigits)
+  }
+
+  const handleSelectPoolTokenA = (token: TokenOption) => {
+    setPoolTokenA(token)
+    setShowPoolASearch(false)
+    setAmountB("")
+    setFromSearchedToken(null)
+    setFromCustomAddress("")
+  }
+
+  const handleSelectPoolTokenB = (token: TokenOption) => {
+    setPoolTokenB(token)
+    setShowPoolBSearch(false)
+    setAmountB("")
+    setToSearchedToken(null)
+    setToCustomAddress("")
+  }
   
   // Search token by address for Token A
   const { data: fromTokenSymbol } = useReadContract({
@@ -314,6 +350,16 @@ export default function PoolPage() {
 
   const getPoolTokenADecimals = () => (poolTokenA.isNative ? 18 : (poolTokenA.decimals ?? 18))
   const getPoolTokenBDecimals = () => (poolTokenB.isNative ? 18 : (poolTokenB.decimals ?? 18))
+  const poolTokenADecimals = getPoolTokenADecimals()
+  const poolTokenBDecimals = getPoolTokenBDecimals()
+  const parsedAmountA = useMemo(
+    () => parseAmountValue(amountA, poolTokenADecimals),
+    [amountA, poolTokenADecimals]
+  )
+  const parsedAmountB = useMemo(
+    () => parseAmountValue(amountB, poolTokenBDecimals),
+    [amountB, poolTokenBDecimals]
+  )
   
   // Remove Liquidity states
   const [removeTokenA, setRemoveTokenA] = useState(TOKENS[0])
@@ -395,12 +441,12 @@ export default function PoolPage() {
     address: ROUTER_ADDRESS,
     abi: ROUTER_ABI,
     functionName: "getAmountsOut",
-    args: amountA && parseFloat(amountA) > 0 ? [
-      parseUnits(amountA, getPoolTokenADecimals()),
+    args: parsedAmountA !== null && parsedAmountA > 0n ? [
+      parsedAmountA,
       [poolTokenA.address, poolTokenB.address]
     ] : undefined,
     query: {
-      enabled: !!amountA && parseFloat(amountA) > 0,
+      enabled: parsedAmountA !== null && parsedAmountA > 0n,
     }
   })
 
@@ -445,21 +491,20 @@ export default function PoolPage() {
   // Update amountB when quote changes (Auto-match value)
   useEffect(() => {
     if (poolAmountsOut && poolAmountsOut.length > 1) {
-      const formatted = formatUnits(poolAmountsOut[1], getPoolTokenBDecimals())
-      setAmountB(parseFloat(formatted).toFixed(6))
-    } else if (!amountA) {
+      setAmountB(formatAmountForDisplay(poolAmountsOut[1], poolTokenBDecimals))
+    } else if (!amountA || parsedAmountA === null || poolTokenA.address === poolTokenB.address) {
       setAmountB("")
     }
-  }, [amountA, poolAmountsOut, poolTokenB])
+  }, [amountA, parsedAmountA, poolAmountsOut, poolTokenA.address, poolTokenB.address, poolTokenBDecimals])
 
   // Calculate pool price from PancakeSwap quote for display
   const poolPriceInfo = (() => {
-    if (!poolAmountsOut || poolAmountsOut.length < 2 || !amountA || parseFloat(amountA) <= 0) return null
+    if (!poolAmountsOut || poolAmountsOut.length < 2 || parsedAmountA === null || parsedAmountA <= 0n) return null
     
-    const amountBFromQuote = parseFloat(formatUnits(poolAmountsOut[1], getPoolTokenBDecimals()))
+    const amountBFromQuote = parseFloat(formatUnits(poolAmountsOut[1], poolTokenBDecimals))
     const amountAValue = parseFloat(amountA)
     
-    if (amountAValue <= 0) return null
+    if (amountAValue <= 0 || amountBFromQuote <= 0) return null
     
     const price = amountBFromQuote / amountAValue
     const reversePrice = amountAValue / amountBFromQuote
@@ -496,14 +541,14 @@ export default function PoolPage() {
   
   const isTokenAAproved = (() => {
     if (poolTokenA.isNative) return true
-    if (!tokenAAllowance || !amountA) return false
-    return tokenAAllowance >= parseUnits(amountA, getPoolTokenADecimals())
+    if (!tokenAAllowance || !amountA || parsedAmountA === null) return false
+    return tokenAAllowance >= parsedAmountA
   })()
   
   const isTokenBApproved = (() => {
     if (poolTokenB.isNative) return true
-    if (!tokenBAllowance || !amountB) return false
-    return tokenBAllowance >= parseUnits(amountB, getPoolTokenBDecimals())
+    if (!tokenBAllowance || !amountB || parsedAmountB === null) return false
+    return tokenBAllowance >= parsedAmountB
   })()
   
   // Remove Liquidity: Get pair and LP balance
@@ -594,10 +639,18 @@ export default function PoolPage() {
   
   const handleAddLiquidity = () => {
     if (!address || !amountA || !amountB) return
+    if (parsedAmountA === null || parsedAmountB === null) {
+      alert(
+        poolTokenADecimals === 0 || poolTokenBDecimals === 0
+          ? "0 精度代币只能输入整数数量"
+          : "输入金额格式不正确"
+      )
+      return
+    }
     
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200)
-    const amountADesired = parseUnits(amountA, getPoolTokenADecimals())
-    const amountBDesired = parseUnits(amountB, getPoolTokenBDecimals())
+    const amountADesired = parsedAmountA
+    const amountBDesired = parsedAmountB
     const slippageTolerance = slippage / 100
     const amountAMin = amountADesired * BigInt(Math.floor((1 - slippageTolerance) * 1000)) / BigInt(1000)
     const amountBMin = amountBDesired * BigInt(Math.floor((1 - slippageTolerance) * 1000)) / BigInt(1000)
@@ -798,10 +851,10 @@ export default function PoolPage() {
               <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">Token A</span>
               {address && !poolTokenA.isNative && poolTokenABalance !== undefined && (
                 <button 
-                  onClick={() => setAmountA(formatUnits(poolTokenABalance, getPoolTokenADecimals()))}
+                  onClick={() => setAmountA(formatUnits(poolTokenABalance, poolTokenADecimals))}
                   className="text-[10px] text-white font-bold hover:text-blue-300 transition-colors"
                 >
-                  余额: {parseFloat(formatUnits(poolTokenABalance, getPoolTokenADecimals())).toFixed(4)}
+                  余额: {poolTokenADecimals === 0 ? formatUnits(poolTokenABalance, poolTokenADecimals) : parseFloat(formatUnits(poolTokenABalance, poolTokenADecimals)).toFixed(4)}
                 </button>
               )}
               {address && !poolTokenA.isNative && poolTokenABalance === undefined && (
@@ -824,7 +877,8 @@ export default function PoolPage() {
               <input
                 type="number"
                 value={amountA}
-                onChange={(e) => setAmountA(e.target.value)}
+                step={poolTokenADecimals === 0 ? "1" : "any"}
+                onChange={(e) => setAmountA(sanitizeAmountInput(e.target.value, poolTokenADecimals))}
                 placeholder="0.0"
                 className="flex-1 bg-transparent text-2xl font-light text-white placeholder-gray-500 focus:outline-none min-w-0"
               />
@@ -901,11 +955,7 @@ export default function PoolPage() {
                               decimals: fromSearchedToken.decimals,
                               logo: `https://tokens.pancakeswap.finance/images/${fromSearchedToken.address}.png`,
                             }
-                            setPoolTokenA(newToken)
-                            setShowPoolASearch(false)
-                            setAmountA("")
-                            setFromSearchedToken(null)
-                            setFromCustomAddress("")
+                            handleSelectPoolTokenA(newToken)
                           }}
                           className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl text-sm font-semibold text-white transition-all"
                         >
@@ -919,8 +969,7 @@ export default function PoolPage() {
                         <button
                           key={token.symbol}
                           onClick={() => {
-                            setPoolTokenA(token)
-                            setShowPoolASearch(false)
+                            handleSelectPoolTokenA(token)
                           }}
                           className="w-full px-3 py-2.5 rounded-lg text-left hover:bg-white/5 transition-colors flex items-center justify-between text-sm"
                         >
@@ -970,10 +1019,10 @@ export default function PoolPage() {
               <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">Token B</span>
               {address && !poolTokenB.isNative && poolTokenBBalance !== undefined && (
                 <button 
-                  onClick={() => setAmountB(formatUnits(poolTokenBBalance, getPoolTokenBDecimals()))}
+                  onClick={() => setAmountB(formatUnits(poolTokenBBalance, poolTokenBDecimals))}
                   className="text-[10px] text-white font-bold hover:text-blue-300 transition-colors"
                 >
-                  余额: {parseFloat(formatUnits(poolTokenBBalance, getPoolTokenBDecimals())).toFixed(4)}
+                  余额: {poolTokenBDecimals === 0 ? formatUnits(poolTokenBBalance, poolTokenBDecimals) : parseFloat(formatUnits(poolTokenBBalance, poolTokenBDecimals)).toFixed(4)}
                 </button>
               )}
               {address && !poolTokenB.isNative && poolTokenBBalance === undefined && (
@@ -996,7 +1045,8 @@ export default function PoolPage() {
               <input
                 type="number"
                 value={amountB}
-                onChange={(e) => setAmountB(e.target.value)}
+                step={poolTokenBDecimals === 0 ? "1" : "any"}
+                onChange={(e) => setAmountB(sanitizeAmountInput(e.target.value, poolTokenBDecimals))}
                 placeholder="0.0"
                 className="flex-1 bg-transparent text-2xl font-light text-white placeholder-gray-500 focus:outline-none min-w-0"
               />
@@ -1073,11 +1123,7 @@ export default function PoolPage() {
                               decimals: toSearchedToken.decimals,
                               logo: `https://tokens.pancakeswap.finance/images/${toSearchedToken.address}.png`,
                             }
-                            setPoolTokenB(newToken)
-                            setShowPoolBSearch(false)
-                            setAmountB("")
-                            setToSearchedToken(null)
-                            setToCustomAddress("")
+                            handleSelectPoolTokenB(newToken)
                           }}
                           className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl text-sm font-semibold text-white transition-all"
                         >
@@ -1091,8 +1137,7 @@ export default function PoolPage() {
                         <button
                           key={token.symbol}
                           onClick={() => {
-                            setPoolTokenB(token)
-                            setShowPoolBSearch(false)
+                            handleSelectPoolTokenB(token)
                           }}
                           className="w-full px-3 py-2.5 rounded-lg text-left hover:bg-white/5 transition-colors flex items-center justify-between text-sm"
                         >
@@ -1128,7 +1173,7 @@ export default function PoolPage() {
           </div>
 
           {/* Pool Info */}
-          {(amountA || amountB) && (parseFloat(amountA) > 0 || parseFloat(amountB) > 0) && (
+          {(amountA || amountB) && ((parsedAmountA !== null && parsedAmountA > 0n) || (parsedAmountB !== null && parsedAmountB > 0n)) && (
             <div className="bg-gradient-to-br from-gray-800/30 to-gray-900/30 rounded-xl p-3 border border-white/5 space-y-2">
               {poolPriceInfo ? (
                 <>
@@ -1207,7 +1252,14 @@ export default function PoolPage() {
             >
               切换网络
             </button>
-          ) : !amountA || !amountB || parseFloat(amountA) <= 0 || parseFloat(amountB) <= 0 ? (
+          ) : parsedAmountA === null || parsedAmountB === null ? (
+            <button
+              disabled
+              className="w-full py-3.5 bg-red-500/20 rounded-xl font-bold text-red-400 cursor-not-allowed border border-red-500/30 text-sm"
+            >
+              {poolTokenADecimals === 0 || poolTokenBDecimals === 0 ? "0 精度代币只能输入整数" : "金额格式不正确"}
+            </button>
+          ) : !amountA || !amountB || parsedAmountA <= 0n || parsedAmountB <= 0n ? (
             <button
               disabled
               className="w-full py-3.5 bg-white/5 rounded-xl font-bold text-gray-500 cursor-not-allowed border border-white/5 text-sm"
