@@ -364,6 +364,11 @@ export default function SwapPage() {
   const amountsOut = routeQuote?.amountsOut ?? null
   const selectedPath = routeQuote?.path ?? null
   const selectedOutput = amountsOut && amountsOut.length > 0 ? amountsOut[amountsOut.length - 1] : 0n
+  const isQuoteReadyForCurrentInput =
+    fromAmount === debouncedFromAmount &&
+    parsedFromAmount !== null &&
+    debouncedParsedFromAmount !== null &&
+    parsedFromAmount === debouncedParsedFromAmount
 
   // Get best quote from PancakeSwap across common routing paths
   useEffect(() => {
@@ -549,7 +554,12 @@ export default function SwapPage() {
   }, [selectedOutput, toTokenDecimals])
   
   // Check for zero output and show warning
-  const hasZeroOutput = parsedFromAmount !== null && parsedFromAmount > 0n && !isRouteLoading && selectedOutput === 0n
+  const hasZeroOutput =
+    parsedFromAmount !== null &&
+    parsedFromAmount > 0n &&
+    isQuoteReadyForCurrentInput &&
+    !isRouteLoading &&
+    selectedOutput === 0n
 
   // Calculate liquidity and price
   const liquidityInfo = useMemo(() => {
@@ -1339,7 +1349,9 @@ export default function SwapPage() {
                     {fromAmount} {fromToken.symbol} 当前在常用路由里没有可用输出
                   </p>
                   <p className="text-red-300 text-xs mt-1">
-                    请增加卖出数量、切换目标币，或检查流动性路径
+                    {fromToken.isNative
+                      ? "请增加买入金额、切换目标币，或检查流动性路径"
+                      : "请增加卖出数量、切换目标币，或检查流动性路径"}
                   </p>
                 </div>
               )}
