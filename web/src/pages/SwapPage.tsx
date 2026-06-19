@@ -256,12 +256,19 @@ export default function SwapPage() {
     }
   })
 
-  // Log quote errors
+  // Log quote errors and check for zero output
   useEffect(() => {
     if (quoteError) {
       console.warn(`[SwapPage] Failed to get quote for ${fromToken.symbol} → ${toToken.symbol}:`, quoteError.message)
     }
-  }, [quoteError, fromToken.symbol, toToken.symbol])
+    
+    // Check if Router returns 0 output - this means the trade will fail
+    if (amountsOut && amountsOut.length > 1 && amountsOut[1] === BigInt(0)) {
+      console.error(`❌ [SwapPage] CRITICAL: Router returns 0 output for ${fromAmount} ${fromToken.symbol}`)
+      console.error(`   This means the token amount is too small relative to pool reserves`)
+      console.error(`   The trade will fail with "Pancake: K" error regardless of slippage`)
+    }
+  }, [quoteError, amountsOut, fromAmount, fromToken.symbol, toToken.symbol])
 
   // Get pair address for liquidity info (sort addresses alphabetically)
   const sortedPairAddresses = [fromToken.address, toToken.address].sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : 1)
@@ -356,6 +363,9 @@ export default function SwapPage() {
       setToAmount("")
     }
   }, [amountsOut])
+  
+  // Check for zero output and show warning
+  const hasZeroOutput = amountsOut && amountsOut.length > 1 && amountsOut[1] === BigInt(0)
 
   // Calculate liquidity and price
   const liquidityInfo = (() => {
@@ -537,6 +547,13 @@ export default function SwapPage() {
   const handleSwap = () => {
     if (!address || !fromAmount || !toAmount) {
       console.warn("缺少必要参数:", { address, fromAmount, toAmount })
+      return
+    }
+    
+    // Check if Router returns 0 output - this trade will definitely fail
+    if (amountsOut && amountsOut.length > 1 && amountsOut[1] === BigInt(0)) {
+      console.error('❌ 交易被阻止: Router 返回 0 输出')
+      alert(`⚠️ 无法执行交易！\n\n原因：${fromAmount} ${fromToken.symbol} 的价值太低\n预期获得: 0 BNB\n\n解决方案：\n- 增加卖出数量\n- 或者该代币可能没有足够的流动性`)
       return
     }
     
@@ -1182,6 +1199,19 @@ export default function SwapPage() {
           {/* Liquidity Info */}
           {liquidityInfo && fromAmount && parseFloat(fromAmount) > 0 && (
             <div className="bg-gradient-to-br from-gray-800/30 to-gray-900/30 rounded-xl p-3 border border-white/5 space-y-2">
+              {/* Zero Output Warning */}
+              {hasZeroOutput && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-2 mb-2">
+                  <p className="text-red-400 text-xs font-semibold mb-1">⚠️ 警告</p>
+                  <p className="text-red-300 text-xs">
+                    {fromAmount} {fromToken.symbol} 的价值太低，Router 返回 0 BNB
+                  </p>
+                  <p className="text-red-300 text-xs mt-1">
+                    请增加卖出数量或检查流动性
+                  </p>
+                </div>
+              )}
+              
               <div className="flex justify-between items-center text-xs">
                 <span className="text-gray-300">价格</span>
                 <span className="text-white font-medium">
@@ -1246,6 +1276,13 @@ export default function SwapPage() {
               className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl font-bold text-white transition-all disabled:opacity-50 shadow-xl shadow-blue-600/20 active:scale-[0.98] text-sm"
             >
               {isApproving ? "授权中..." : `授权 ${fromToken.symbol}`}
+            </button>
+          ) : hasZeroOutput ? (
+            <button
+              disabled
+              className="w-full py-3.5 bg-red-500/20 rounded-xl font-bold text-red-400 cursor-not-allowed border border-red-500/30 text-sm"
+            >
+              ⚠️ 价值太低，无法交易
             </button>
           ) : (
             <button
