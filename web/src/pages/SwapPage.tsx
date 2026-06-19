@@ -1260,21 +1260,21 @@ export default function SwapPage() {
               <h3 className="text-xl font-bold text-white mb-6">滑点设置</h3>
               
               {/* Tax Token Warning */}
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-6">
-                <p className="text-blue-400 text-sm mb-2">
-                  💡 如果交易失败，可能是代币有交易税
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6">
+                <p className="text-red-400 text-sm mb-2 font-semibold">
+                  ⚠️ 遇到 "Pancake: K" 错误？
                 </p>
-                <p className="text-blue-300 text-xs mb-2">
-                  建议：带税代币设置 10-20% 滑点
+                <p className="text-red-300 text-xs mb-2">
+                  这说明代币税率很高，需要更高滑点！
                 </p>
                 <p className="text-yellow-400 text-xs">
-                  ⚠️ 错误 "Pancake: K" = 滑点太低，请提高滑点！
+                  💡 建议：尝试 20%、30% 甚至 50% 滑点
                 </p>
               </div>
               
               {/* Preset Options */}
               <div className="grid grid-cols-5 gap-3 mb-6">
-                {[0.5, 1.0, 5.0, 10.0, 20.0].map((value) => (
+                {[5.0, 10.0, 20.0, 30.0, 50.0].map((value) => (
                   <button
                     key={value}
                     onClick={() => {
