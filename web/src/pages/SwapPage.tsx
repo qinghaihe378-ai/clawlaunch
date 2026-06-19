@@ -473,9 +473,9 @@ export default function SwapPage() {
                     </span>
                   </div>
                 )}
-                {address && fromToken.isNative && (
+                {address && fromToken.isNative && bnbBalance && (
                   <span className="text-[10px] text-white font-bold">
-                    BNB余额需保留Gas费
+                    余额: {parseFloat(formatEther(bnbBalance.value)).toFixed(4)}
                   </span>
                 )}
               </div>
