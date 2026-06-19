@@ -468,13 +468,13 @@ export default function SwapPage() {
                     >
                       最大
                     </button>
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-[10px] text-white font-bold">
                       余额: {parseFloat(formattedBalance).toFixed(4)}
                     </span>
                   </div>
                 )}
                 {address && fromToken.isNative && (
-                  <span className="text-[10px] text-gray-400">
+                  <span className="text-[10px] text-white font-bold">
                     BNB余额需保留Gas费
                   </span>
                 )}

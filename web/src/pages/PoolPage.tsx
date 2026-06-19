@@ -627,7 +627,7 @@ export default function PoolPage() {
               {address && !poolTokenA.isNative && poolTokenABalance !== undefined && poolTokenABalance > 0n && (
                 <button 
                   onClick={() => setAmountA(formatEther(poolTokenABalance))}
-                  className="text-[10px] text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                  className="text-[10px] text-white font-bold hover:text-blue-300 transition-colors"
                 >
                   Balance: {parseFloat(formatEther(poolTokenABalance)).toFixed(4)}
                 </button>
@@ -783,7 +783,7 @@ export default function PoolPage() {
               {address && !poolTokenB.isNative && poolTokenBBalance !== undefined && poolTokenBBalance > 0n && (
                 <button 
                   onClick={() => setAmountB(formatEther(poolTokenBBalance))}
-                  className="text-[10px] text-blue-400 hover:text-blue-300 transition-colors font-medium"
+                  className="text-[10px] text-white font-bold hover:text-blue-300 transition-colors"
                 >
                   Balance: {parseFloat(formatEther(poolTokenBBalance)).toFixed(4)}
                 </button>
