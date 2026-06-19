@@ -574,6 +574,7 @@ export default function PoolPage() {
         abi: ROUTER_ABI,
         functionName: "removeLiquidityETH",
         args: [token, liquidityToRemove, amountAMin, amountBMin, address, deadline],
+        gas: BigInt(300000), // Explicitly set gas limit for ETH removal
       })
     } else {
       removeLiquidityTx({
@@ -581,6 +582,7 @@ export default function PoolPage() {
         abi: ROUTER_ABI,
         functionName: "removeLiquidity",
         args: [removeTokenA.address, removeTokenB.address, liquidityToRemove, amountAMin, amountBMin, address, deadline],
+        gas: BigInt(300000), // Explicitly set gas limit for token removal
       })
     }
   }
