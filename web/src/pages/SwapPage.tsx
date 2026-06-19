@@ -610,8 +610,24 @@ export default function SwapPage() {
       
       // Calculate amountOutMin with slippage using BigInt to avoid precision loss
       const amountsOutValue = amountsOut && amountsOut.length > 1 ? amountsOut[1] : parseUnits(toAmount, toDec)
+      
+      console.log("[DEBUG] 滑点计算:", {
+        amountsOut: amountsOut?.map(a => a.toString()),
+        amountsOutValue: amountsOutValue.toString(),
+        toAmount,
+        toDec,
+        fallbackUsed: !amountsOut || amountsOut.length <= 1
+      })
+      
       const slippageBps = BigInt(Math.floor(slippage * 100)) // Convert to basis points (e.g., 0.5% = 50 bps)
       const amountOutMin = amountsOutValue * (BigInt(10000) - slippageBps) / BigInt(10000)
+      
+      console.log("[DEBUG] 最终参数:", {
+        slippage: `${slippage}%`,
+        slippageBps: slippageBps.toString(),
+        amountOutMin: amountOutMin.toString(),
+        formatted: formatUnits(amountOutMin, toDec)
+      })
       
       // IMPORTANT: Path must be in the correct order for the swap direction
       // For sell (token -> BNB): [tokenAddress, WBNB]
