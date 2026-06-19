@@ -210,6 +210,7 @@ export default function SwapPage() {
     args: address && fromAmount ? [address, ROUTER_ADDRESS] : undefined,
     query: {
       enabled: !!address && !fromToken.isNative && !!fromAmount && isAddress(fromToken.address),
+      refetchInterval: 3000,
     }
   })
 
@@ -354,23 +355,18 @@ export default function SwapPage() {
   // Refetch allowance after approval transaction is confirmed
   useEffect(() => {
     if (isConfirmed && !isSwapping) {
-      // Wait a bit for the blockchain to update
-      setTimeout(() => {
-        refetchAllowance()
-      }, 1000)
+      refetchAllowance()
     }
   }, [isConfirmed, isSwapping, refetchAllowance])
 
   // Refetch balance after swap transaction is confirmed
   useEffect(() => {
     if (isConfirmed && !isSwapping) {
-      setTimeout(() => {
-        if (fromToken.isNative) {
-          refetchBnbBalance()
-        } else {
-          refetchBalance()
-        }
-      }, 1500)
+      if (fromToken.isNative) {
+        refetchBnbBalance()
+      } else {
+        refetchBalance()
+      }
     }
   }, [isConfirmed, isSwapping, fromToken.isNative, refetchBalance, refetchBnbBalance])
 
