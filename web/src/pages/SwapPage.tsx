@@ -195,6 +195,8 @@ type RouteQuote = {
   amountsOut: bigint[]
 }
 
+type QuoteStatus = "idle" | "loading" | "success" | "empty"
+
 function useDebouncedValue<T>(value: T, delay: number) {
   const [debouncedValue, setDebouncedValue] = useState(value)
 
@@ -324,7 +326,7 @@ export default function SwapPage() {
     [debouncedFromAmount, fromTokenDecimals]
   )
   const [routeQuote, setRouteQuote] = useState<RouteQuote | null>(null)
-  const [isRouteLoading, setIsRouteLoading] = useState(false)
+  const [quoteStatus, setQuoteStatus] = useState<QuoteStatus>("idle")
 
   const candidatePaths = useMemo(() => {
     const fromAddress = fromToken.address
@@ -374,37 +376,51 @@ export default function SwapPage() {
   useEffect(() => {
     if (!publicClient || debouncedParsedFromAmount === null || debouncedParsedFromAmount <= 0n || fromToken.address === toToken.address) {
       setRouteQuote(null)
-      setIsRouteLoading(false)
+      setQuoteStatus("idle")
       return
     }
 
     let cancelled = false
 
     const fetchBestRoute = async () => {
-      setIsRouteLoading(true)
       setRouteQuote(null)
+      setQuoteStatus("loading")
 
-      const results = await publicClient.multicall({
-        contracts: candidatePaths.map((path) => ({
-          address: ROUTER_ADDRESS,
-          abi: ROUTER_ABI,
-          functionName: "getAmountsOut",
-          args: [debouncedParsedFromAmount, path],
-        })),
-        allowFailure: true,
-      })
+      const results = await Promise.all(
+        candidatePaths.map(async (path) => {
+          try {
+            const result = await publicClient.readContract({
+              address: ROUTER_ADDRESS,
+              abi: ROUTER_ABI,
+              functionName: "getAmountsOut",
+              args: [debouncedParsedFromAmount, path],
+            })
+            return {
+              path,
+              status: "success" as const,
+              result: Array.from(result as readonly bigint[]),
+            }
+          } catch (error) {
+            return {
+              path,
+              status: "failure" as const,
+              error: error instanceof Error ? error.message : "unknown",
+            }
+          }
+        })
+      )
 
       if (cancelled) return
 
-      const validRoutes = results.flatMap((result, index) => {
+      const validRoutes = results.flatMap((result) => {
         if (result.status !== "success") return []
 
-        const amounts = Array.from(result.result as readonly bigint[])
+        const amounts = result.result
         const output = amounts[amounts.length - 1] ?? 0n
         if (output <= 0n) return []
 
         return [{
-          path: candidatePaths[index],
+          path: result.path,
           amountsOut: amounts,
           output,
         }]
@@ -416,7 +432,7 @@ export default function SwapPage() {
 
       if (validRoutes.length === 0) {
         setRouteQuote(null)
-        setIsRouteLoading(false)
+        setQuoteStatus("empty")
         return
       }
 
@@ -424,14 +440,14 @@ export default function SwapPage() {
         path: validRoutes[0].path,
         amountsOut: validRoutes[0].amountsOut,
       })
-      setIsRouteLoading(false)
+      setQuoteStatus("success")
     }
 
     fetchBestRoute().catch((error) => {
       if (cancelled) return
       console.warn(`[SwapPage] Failed to get quote for ${fromToken.symbol} → ${toToken.symbol}:`, error)
       setRouteQuote(null)
-      setIsRouteLoading(false)
+      setQuoteStatus("empty")
     })
 
     return () => {
@@ -558,7 +574,7 @@ export default function SwapPage() {
     parsedFromAmount !== null &&
     parsedFromAmount > 0n &&
     isQuoteReadyForCurrentInput &&
-    !isRouteLoading &&
+    quoteStatus === "empty" &&
     selectedOutput === 0n
 
   // Calculate liquidity and price
@@ -1315,26 +1331,6 @@ export default function SwapPage() {
           {(isApproving || isApproveConfirming) && (
             <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-center backdrop-blur-sm">
               <span className="text-sm text-blue-400 font-medium">⏳ 授权中...</span>
-            </div>
-          )}
-
-          {isSwapping && (
-            <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl text-center backdrop-blur-sm">
-              <span className="text-sm text-yellow-400 font-medium">⏳ 等待确认...</span>
-            </div>
-          )}
-
-          {isConfirming && txHash && (
-            <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl text-center backdrop-blur-sm">
-              <span className="text-sm text-purple-400 font-medium mb-2 block">⏳ 交易中...</span>
-              <a 
-                href={`https://bscscan.com/tx/${txHash}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-purple-300 hover:text-purple-200 underline"
-              >
-                在 BSCScan 上查看
-              </a>
             </div>
           )}
 
