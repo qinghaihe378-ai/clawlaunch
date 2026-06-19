@@ -502,14 +502,20 @@ export default function SwapPage() {
     try {
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200)
       const amountIn = parseUnits(fromAmount, fromDec)
-      const amountOutMin = parseUnits((parseFloat(toAmount) * (1 - slippage / 100)).toString(), toDec)
+      
+      // Calculate amountOutMin with slippage using BigInt to avoid precision loss
+      const amountsOutValue = amountsOut && amountsOut.length > 1 ? amountsOut[1] : parseUnits(toAmount, toDec)
+      const slippageBps = BigInt(Math.floor(slippage * 100)) // Convert to basis points (e.g., 0.5% = 50 bps)
+      const amountOutMin = amountsOutValue * (BigInt(10000) - slippageBps) / BigInt(10000)
+      
       const path = [fromToken.address, toToken.address]
       
       console.log("交易参数:", {
         amountIn: amountIn.toString(),
         amountOutMin: amountOutMin.toString(),
         path,
-        deadline: deadline.toString()
+        deadline: deadline.toString(),
+        slippageBps: slippageBps.toString()
       })
       
       if (fromToken.isNative) {
