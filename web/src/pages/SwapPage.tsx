@@ -195,21 +195,23 @@ export default function SwapPage() {
     address: ROUTER_ADDRESS,
     abi: ROUTER_ABI,
     functionName: "getAmountsOut",
-    args: fromAmount && parseFloat(fromAmount) > 0 && (!fromToken.isNative ? fromDecimals !== undefined : true) ? [
+    args: fromAmount && parseFloat(fromAmount) > 0 && (!fromToken.isNative ? fromDecimals !== undefined : true) && (!toToken.isNative ? toDecimals !== undefined : true) ? [
       parseUnits(fromAmount, getFromDecimals()),
       [fromToken.address, toToken.address]
     ] : undefined,
     query: {
-      enabled: !!fromAmount && parseFloat(fromAmount) > 0 && (!fromToken.isNative ? fromDecimals !== undefined : true),
+      enabled: !!fromAmount && parseFloat(fromAmount) > 0 && (!fromToken.isNative ? fromDecimals !== undefined : true) && (!toToken.isNative ? toDecimals !== undefined : true),
     }
   })
 
-  // Get pair address for liquidity info
+  // Get pair address for liquidity info (sort addresses alphabetically)
+  const sortedPairAddresses = [fromToken.address, toToken.address].sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : 1)
+  
   const { data: pairAddress } = useReadContract({
     address: FACTORY_ADDRESS,
     abi: FACTORY_ABI,
     functionName: "getPair",
-    args: [fromToken.address, toToken.address],
+    args: [sortedPairAddresses[0] as Address, sortedPairAddresses[1] as Address],
     query: {
       enabled: true,
     }
@@ -432,7 +434,10 @@ export default function SwapPage() {
   }
 
   const handleSwap = () => {
-    if (!address || !fromAmount || !toAmount) return
+    if (!address || !fromAmount || !toAmount) {
+      console.warn("缺少必要参数:", { address, fromAmount, toAmount })
+      return
+    }
     
     // Check if decimals are loaded for non-native tokens
     if (!fromToken.isNative && fromDecimals === undefined) {
@@ -446,33 +451,59 @@ export default function SwapPage() {
       return
     }
     
+    // Check if pair exists
+    if (!pairAddress || pairAddress === '0x0000000000000000000000000000000000000000') {
+      console.error("交易对不存在:", { from: fromToken.address, to: toToken.address })
+      alert(`交易对不存在：${fromToken.symbol} / ${toToken.symbol}\n\n请确保这两个代币在 PancakeSwap 上有流动性池`)
+      return
+    }
+    
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200)
     const amountIn = parseUnits(fromAmount, getFromDecimals())
     const amountOutMin = parseUnits((parseFloat(toAmount) * (1 - slippage / 100)).toString(), getToDecimals())
     const path = [fromToken.address, toToken.address]
+    
+    console.log("准备执行 Swap:", {
+      fromToken: fromToken.symbol,
+      toToken: toToken.symbol,
+      amountIn: amountIn.toString(),
+      amountOutMin: amountOutMin.toString(),
+      fromDecimals: getFromDecimals(),
+      toDecimals: getToDecimals(),
+      path,
+      pairAddress
+    })
 
-    if (fromToken.isNative) {
-      swap({
-        address: ROUTER_ADDRESS,
-        abi: ROUTER_ABI,
-        functionName: "swapExactETHForTokens",
-        args: [amountOutMin, path, address, deadline],
-        value: amountIn,
-      })
-    } else if (toToken.isNative) {
-      swap({
-        address: ROUTER_ADDRESS,
-        abi: ROUTER_ABI,
-        functionName: "swapExactTokensForETH",
-        args: [amountIn, amountOutMin, path, address, deadline],
-      })
-    } else {
-      swap({
-        address: ROUTER_ADDRESS,
-        abi: ROUTER_ABI,
-        functionName: "swapExactTokensForTokens",
-        args: [amountIn, amountOutMin, path, address, deadline],
-      })
+    try {
+      if (fromToken.isNative) {
+        console.log("执行 swapExactETHForTokens")
+        swap({
+          address: ROUTER_ADDRESS,
+          abi: ROUTER_ABI,
+          functionName: "swapExactETHForTokens",
+          args: [amountOutMin, path, address, deadline],
+          value: amountIn,
+        })
+      } else if (toToken.isNative) {
+        console.log("执行 swapExactTokensForETH")
+        swap({
+          address: ROUTER_ADDRESS,
+          abi: ROUTER_ABI,
+          functionName: "swapExactTokensForETH",
+          args: [amountIn, amountOutMin, path, address, deadline],
+        })
+      } else {
+        console.log("执行 swapExactTokensForTokens")
+        swap({
+          address: ROUTER_ADDRESS,
+          abi: ROUTER_ABI,
+          functionName: "swapExactTokensForTokens",
+          args: [amountIn, amountOutMin, path, address, deadline],
+        })
+      }
+    } catch (error) {
+      console.error("Swap 调用失败:", error)
+      alert(`交易发起失败: ${error instanceof Error ? error.message : '未知错误'}`)
     }
   }
 
