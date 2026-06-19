@@ -214,7 +214,7 @@ export default function SwapPage() {
     }
   })
 
-  // Get balance for ERC20 tokens
+  // Get balance for ERC20 tokens (From)
   const { data: balance, refetch: refetchBalance } = useReadContract({
     address: isAddress(fromToken.address) ? fromToken.address as Address : undefined,
     abi: ERC20_ABI,
@@ -225,7 +225,7 @@ export default function SwapPage() {
     }
   })
 
-  // Get BNB balance
+  // Get BNB balance (From)
   const { data: bnbBalance, refetch: refetchBnbBalance } = useBalance({
     address: address,
     query: {
@@ -233,8 +233,30 @@ export default function SwapPage() {
     }
   })
 
-  // Use the appropriate balance
+  // Use the appropriate balance for From token
   const displayBalance = fromToken.isNative ? bnbBalance?.value : balance
+
+  // Get balance for ERC20 tokens (To)
+  const { data: toBalance } = useReadContract({
+    address: isAddress(toToken.address) ? toToken.address as Address : undefined,
+    abi: ERC20_ABI,
+    functionName: "balanceOf",
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && !toToken.isNative && isAddress(toToken.address),
+    }
+  })
+
+  // Get BNB balance (To)
+  const { data: toBnbBalance } = useBalance({
+    address: address,
+    query: {
+      enabled: !!address && toToken.isNative,
+    }
+  })
+
+  // Use the appropriate balance for To token
+  const displayToBalance = toToken.isNative ? toBnbBalance?.value : toBalance
 
   // Update toAmount when quote changes
   useEffect(() => {
@@ -683,7 +705,22 @@ export default function SwapPage() {
             <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-all">
               <div className="flex justify-between mb-1.5">
                 <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">To</span>
-                {toAmount && <span className="text-[10px] text-blue-400 font-medium">≈ {parseFloat(toAmount).toFixed(6)} {toToken.symbol}</span>}
+                {address && !toToken.isNative && toBalance !== undefined && (
+                  <span className="text-[10px] text-white font-bold">
+                    余额: {parseFloat(formatEther(toBalance)).toFixed(4)}
+                  </span>
+                )}
+                {address && toToken.isNative && toBnbBalance && (
+                  <span className="text-[10px] text-white font-bold">
+                    余额: {parseFloat(formatEther(toBnbBalance.value)).toFixed(4)}
+                  </span>
+                )}
+                {address && toToken.isNative && !toBnbBalance && (
+                  <span className="text-[10px] text-white font-bold">
+                    余额: 0.0000
+                  </span>
+                )}
+                {!address && toAmount && <span className="text-[10px] text-blue-400 font-medium">≈ {parseFloat(toAmount).toFixed(6)} {toToken.symbol}</span>}
               </div>
               <div className="flex items-center justify-between gap-2">
                 <input
