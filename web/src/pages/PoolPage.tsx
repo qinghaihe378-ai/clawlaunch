@@ -1310,6 +1310,13 @@ export default function PoolPage() {
             >
               切换网络
             </button>
+          ) : !amountA || !amountB ? (
+            <button
+              disabled
+              className="w-full py-3.5 bg-white/5 rounded-xl font-bold text-gray-500 cursor-not-allowed border border-white/5 text-sm"
+            >
+              输入金额
+            </button>
           ) : parsedAmountA === null || parsedAmountB === null ? (
             <button
               disabled
@@ -1317,7 +1324,7 @@ export default function PoolPage() {
             >
               {poolTokenADecimals === 0 || poolTokenBDecimals === 0 ? "0 精度代币只能输入整数" : "金额格式不正确"}
             </button>
-          ) : !amountA || !amountB || parsedAmountA <= 0n || parsedAmountB <= 0n ? (
+          ) : parsedAmountA <= 0n || parsedAmountB <= 0n ? (
             <button
               disabled
               className="w-full py-3.5 bg-white/5 rounded-xl font-bold text-gray-500 cursor-not-allowed border border-white/5 text-sm"
