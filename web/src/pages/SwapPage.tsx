@@ -156,7 +156,7 @@ export default function SwapPage() {
   const [toToken, setToToken] = useState(TOKENS[1])
   const [fromAmount, setFromAmount] = useState("")
   const [toAmount, setToAmount] = useState("")
-  const [slippage, setSlippage] = useState(0.5)
+  const [slippage, setSlippage] = useState(1.0) // Default to 1% for better compatibility with custom tokens
   const [showSlippageModal, setShowSlippageModal] = useState(false)
   const [customSlippage, setCustomSlippage] = useState("")
   const [isApproved, setIsApproved] = useState(true)
