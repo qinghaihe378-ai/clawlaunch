@@ -210,7 +210,7 @@ export default function SwapPage() {
   const [toToken, setToToken] = useState(TOKENS[1])
   const [fromAmount, setFromAmount] = useState("")
   const [toAmount, setToAmount] = useState("")
-  const [slippage, setSlippage] = useState(10.0) // Default to 10% for tax tokens (3-5% tax + buffer)
+  const [slippage, setSlippage] = useState(0.5)
   const [showSlippageModal, setShowSlippageModal] = useState(false)
   const [customSlippage, setCustomSlippage] = useState("")
   const [isApproved, setIsApproved] = useState(true)
@@ -1524,22 +1524,9 @@ export default function SwapPage() {
             <div className="px-6 py-4">
               <h3 className="text-xl font-bold text-white mb-6">滑点设置</h3>
               
-              {/* Tax Token Warning */}
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4 mb-6">
-                <p className="text-red-400 text-sm mb-2 font-semibold">
-                  ⚠️ 遇到 "Pancake: K" 错误？
-                </p>
-                <p className="text-red-300 text-xs mb-2">
-                  这说明代币税率很高，需要更高滑点！
-                </p>
-                <p className="text-yellow-400 text-xs">
-                  💡 建议：尝试 20%、30% 甚至 50% 滑点
-                </p>
-              </div>
-              
               {/* Preset Options */}
               <div className="grid grid-cols-5 gap-3 mb-6">
-                {[5.0, 10.0, 20.0, 30.0, 50.0].map((value) => (
+                {[0.1, 0.5, 1.0, 2.0, 5.0].map((value) => (
                   <button
                     key={value}
                     onClick={() => {
@@ -1563,7 +1550,7 @@ export default function SwapPage() {
                 <div className="relative">
                   <input
                     type="number"
-                    value={customSlippage !== '' ? customSlippage : (slippage === 0.1 || slippage === 0.5 || slippage === 1.0 || slippage === 2.0 ? '' : slippage.toString())}
+                    value={customSlippage !== '' ? customSlippage : (slippage === 0.1 || slippage === 0.5 || slippage === 1.0 || slippage === 2.0 || slippage === 5.0 ? '' : slippage.toString())}
                     onChange={(e) => {
                       const inputVal = e.target.value
                       setCustomSlippage(inputVal)
