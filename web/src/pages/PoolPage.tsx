@@ -562,19 +562,37 @@ export default function PoolPage() {
     }
   }
   
-  const handleRemoveLiquidity = () => {
+  const handleRemoveLiquidity = async () => {
     if (!address) {
       alert("请先连接钱包")
       return
     }
     
+    console.log("=== 移除流动性诊断信息 ===")
+    console.log("1. 用户地址:", address)
+    console.log("2. Token A:", removeTokenA.symbol, removeTokenA.address, "isNative:", removeTokenA.isNative)
+    console.log("3. Token B:", removeTokenB.symbol, removeTokenB.address, "isNative:", removeTokenB.isNative)
+    console.log("4. Pair 地址:", removePairAddress)
+    console.log("5. LP 余额:", lpBalance?.toString() || "0")
+    console.log("6. LP Total Supply:", lpTotalSupply?.toString() || "0")
+    console.log("7. hasLiquidity:", hasLiquidity)
+    console.log("8. removePercentage:", removePercentage)
+    
+    if (!removePairAddress || removePairAddress === '0x0000000000000000000000000000000000000000') {
+      alert(`❌ 错误：找不到交易对合约\n\n可能原因：\n1. 这两个代币之间没有创建流动性池\n2. 代币地址输入错误\n\nToken A: ${removeTokenA.address}\nToken B: ${removeTokenB.address}`)
+      return
+    }
+    
     if (!lpBalance || lpBalance === 0n) {
-      alert(`您没有该交易对的流动性凭证 (LP Token)。\n\nPair 地址: ${removePairAddress || '未找到'}\nLP 余额: ${lpBalance?.toString() || '0'}`)
+      alert(`❌ 错误：您没有该交易对的 LP Token\n\nPair 地址: ${removePairAddress}\n您的 LP 余额: 0`)
       return
     }
     
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200)
     const liquidityToRemove = lpBalance * BigInt(removePercentage) / BigInt(100)
+    
+    console.log("9. 要移除的流动性:", liquidityToRemove.toString())
+    console.log("10. Deadline:", deadline.toString())
     
     // 设置一个极小值防止精度丢失导致的 revert，而不是直接用 0
     const amountAMin = 1n 
@@ -595,6 +613,14 @@ export default function PoolPage() {
       if (removeTokenA.isNative || removeTokenB.isNative) {
         const token = removeTokenA.isNative ? removeTokenB.address : removeTokenA.address
         console.log("调用 removeLiquidityETH...")
+        console.log("参数:", {
+          token,
+          liquidity: liquidityToRemove.toString(),
+          amountAMin: amountAMin.toString(),
+          amountBMin: amountBMin.toString(),
+          to: address,
+          deadline: deadline.toString()
+        })
         removeLiquidityTx({
           address: ROUTER_ADDRESS,
           abi: ROUTER_ABI,
@@ -604,6 +630,15 @@ export default function PoolPage() {
         })
       } else {
         console.log("调用 removeLiquidity...")
+        console.log("参数:", {
+          tokenA: removeTokenA.address,
+          tokenB: removeTokenB.address,
+          liquidity: liquidityToRemove.toString(),
+          amountAMin: amountAMin.toString(),
+          amountBMin: amountBMin.toString(),
+          to: address,
+          deadline: deadline.toString()
+        })
         removeLiquidityTx({
           address: ROUTER_ADDRESS,
           abi: ROUTER_ABI,
@@ -614,7 +649,7 @@ export default function PoolPage() {
       }
     } catch (error) {
       console.error("移除流动性调用失败:", error)
-      alert(`交易发起失败: ${error instanceof Error ? error.message : '未知错误'}\n\n请检查控制台日志获取详细信息。`)
+      alert(`❌ 交易发起失败\n\n错误信息: ${error instanceof Error ? error.message : '未知错误'}\n\n请查看控制台日志获取详细诊断信息。`)
     }
   }
 
