@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { useAccount, useSwitchChain, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi"
+import { useAccount, useSwitchChain, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance } from "wagmi"
 import { parseEther, formatEther, type Address, isAddress } from "viem"
 import { bsc } from "wagmi/chains"
 
@@ -358,7 +358,7 @@ export default function PoolPage() {
     }
   })
 
-  // Get balance for token A
+  // Get balance for token A (ERC20)
   const { data: poolTokenABalance } = useReadContract({
     address: isAddress(poolTokenA.address) ? poolTokenA.address as Address : undefined,
     abi: ERC20_ABI,
@@ -369,7 +369,15 @@ export default function PoolPage() {
     }
   })
 
-  // Get balance for token B
+  // Get BNB balance for token A
+  const { data: poolTokenABnbBalance } = useBalance({
+    address: address,
+    query: {
+      enabled: !!address && poolTokenA.isNative,
+    }
+  })
+
+  // Get balance for token B (ERC20)
   const { data: poolTokenBBalance } = useReadContract({
     address: isAddress(poolTokenB.address) ? poolTokenB.address as Address : undefined,
     abi: ERC20_ABI,
@@ -377,6 +385,14 @@ export default function PoolPage() {
     args: address ? [address] : undefined,
     query: {
       enabled: !!address && !poolTokenB.isNative && isAddress(poolTokenB.address),
+    }
+  })
+
+  // Get BNB balance for token B
+  const { data: poolTokenBBnbBalance } = useBalance({
+    address: address,
+    query: {
+      enabled: !!address && poolTokenB.isNative,
     }
   })
 
@@ -637,9 +653,14 @@ export default function PoolPage() {
                   余额: 0.0000
                 </span>
               )}
-              {address && poolTokenA.isNative && (
+              {address && poolTokenA.isNative && poolTokenABnbBalance && (
                 <span className="text-[10px] text-white font-bold">
-                  BNB余额需保留Gas费
+                  余额: {parseFloat(formatEther(poolTokenABnbBalance.value)).toFixed(4)}
+                </span>
+              )}
+              {address && poolTokenA.isNative && !poolTokenABnbBalance && (
+                <span className="text-[10px] text-white font-bold">
+                  余额: 0.0000
                 </span>
               )}
             </div>
@@ -803,9 +824,14 @@ export default function PoolPage() {
                   余额: 0.0000
                 </span>
               )}
-              {address && poolTokenB.isNative && (
+              {address && poolTokenB.isNative && poolTokenBBnbBalance && (
                 <span className="text-[10px] text-white font-bold">
-                  BNB余额需保留Gas费
+                  余额: {parseFloat(formatEther(poolTokenBBnbBalance.value)).toFixed(4)}
+                </span>
+              )}
+              {address && poolTokenB.isNative && !poolTokenBBnbBalance && (
+                <span className="text-[10px] text-white font-bold">
+                  余额: 0.0000
                 </span>
               )}
             </div>
