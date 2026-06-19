@@ -1234,9 +1234,19 @@ export default function SwapPage() {
             <div className="px-6 py-4">
               <h3 className="text-xl font-bold text-white mb-6">滑点设置</h3>
               
+              {/* Tax Token Warning */}
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4 mb-6">
+                <p className="text-blue-400 text-sm mb-2">
+                  💡 如果交易失败，可能是代币有交易税
+                </p>
+                <p className="text-blue-300 text-xs">
+                  建议：带税代币设置 10-20% 滑点
+                </p>
+              </div>
+              
               {/* Preset Options */}
-              <div className="grid grid-cols-4 gap-3 mb-6">
-                {[0.1, 0.5, 1.0, 2.0].map((value) => (
+              <div className="grid grid-cols-5 gap-3 mb-6">
+                {[0.5, 1.0, 5.0, 10.0, 20.0].map((value) => (
                   <button
                     key={value}
                     onClick={() => {
