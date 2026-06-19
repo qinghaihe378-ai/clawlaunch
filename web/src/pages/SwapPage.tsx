@@ -166,7 +166,6 @@ export default function SwapPage() {
   const [toCustomAddress, setToCustomAddress] = useState("")
   const [fromSearchedToken, setFromSearchedToken] = useState<{symbol: string, name: string, address: Address} | null>(null)
   const [toSearchedToken, setToSearchedToken] = useState<{symbol: string, name: string, address: Address} | null>(null)
-  const [showSwapSuccess, setShowSwapSuccess] = useState(false)
 
   // Get quote from PancakeSwap
   const { data: amountsOut } = useReadContract({
@@ -392,15 +391,6 @@ export default function SwapPage() {
       }
     }
   }, [isConfirmed, isSwapping, fromToken.isNative, refetchBalance, refetchBnbBalance])
-  
-  // Auto-hide success message after 1 second
-  useEffect(() => {
-    if (isConfirmed) {
-      setShowSwapSuccess(true)
-      const timer = setTimeout(() => setShowSwapSuccess(false), 1000)
-      return () => clearTimeout(timer)
-    }
-  }, [isConfirmed])
 
   const handleApprove = () => {
     if (!address || !fromAmount) return
@@ -930,12 +920,6 @@ export default function SwapPage() {
 
           {isConfirmed && (
             <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-center backdrop-blur-sm">
-              <span className="text-xs text-green-400 font-medium">✅ 交易成功！</span>
-            </div>
-          )}
-          
-          {showSwapSuccess && !isConfirmed && (
-            <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-center backdrop-blur-sm animate-fade-out">
               <span className="text-xs text-green-400 font-medium">✅ 交易成功！</span>
             </div>
           )}
