@@ -521,6 +521,50 @@ export default function SwapPage() {
       slippage
     })
     
+    // Additional checks for selling tokens
+    if (!fromToken.isNative) {
+      console.log("[卖出检查] 代币信息:", {
+        symbol: fromToken.symbol,
+        address: fromToken.address,
+        decimals: fromDec,
+        amountIn: parseUnits(fromAmount, fromDec).toString(),
+        displayBalance: displayBalance?.toString(),
+        formattedBalance: formattedBalance
+      })
+      
+      // Check allowance
+      if (allowance !== undefined) {
+        const amountIn = parseUnits(fromAmount, fromDec)
+        console.log("[卖出检查] 授权状态:", {
+          allowance: allowance.toString(),
+          needed: amountIn.toString(),
+          hasEnough: allowance >= amountIn
+        })
+        
+        if (allowance < amountIn) {
+          console.error("[卖出检查] ❌ 授权额度不足!")
+          alert(`授权额度不足！\n\n需要: ${fromAmount} ${fromToken.symbol}\n已授权: ${formatUnits(allowance, fromDec)} ${fromToken.symbol}\n\n请先点击"授权"按钮`)
+          return
+        }
+      }
+      
+      // Check balance
+      if (balance !== undefined) {
+        const amountIn = parseUnits(fromAmount, fromDec)
+        console.log("[卖出检查] 余额状态:", {
+          balance: balance.toString(),
+          needed: amountIn.toString(),
+          hasEnough: balance >= amountIn
+        })
+        
+        if (balance < amountIn) {
+          console.error("[卖出检查] ❌ 余额不足!")
+          alert(`余额不足！\n\n需要: ${fromAmount} ${fromToken.symbol}\n当前余额: ${formattedBalance} ${fromToken.symbol}`)
+          return
+        }
+      }
+    }
+    
     try {
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200)
       const amountIn = parseUnits(fromAmount, fromDec)
