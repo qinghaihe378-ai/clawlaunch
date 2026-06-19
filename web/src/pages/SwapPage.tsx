@@ -622,6 +622,7 @@ export default function SwapPage() {
           functionName: "swapExactETHForTokens",
           args: [amountOutMin, path, address, deadline],
           value: amountIn,
+          gas: BigInt(400000), // Explicit gas for tax tokens
         })
       } else if (toToken.isNative) {
         console.log("执行 swapExactTokensForETH")
@@ -630,6 +631,7 @@ export default function SwapPage() {
           abi: ROUTER_ABI,
           functionName: "swapExactTokensForETH",
           args: [amountIn, amountOutMin, path, address, deadline],
+          gas: BigInt(500000), // Higher gas for selling tax tokens
         })
       } else {
         console.log("执行 swapExactTokensForTokens")
@@ -638,6 +640,7 @@ export default function SwapPage() {
           abi: ROUTER_ABI,
           functionName: "swapExactTokensForTokens",
           args: [amountIn, amountOutMin, path, address, deadline],
+          gas: BigInt(500000), // Higher gas for tax tokens
         })
       }
     } catch (error) {
