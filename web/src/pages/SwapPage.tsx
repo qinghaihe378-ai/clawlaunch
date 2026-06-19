@@ -156,7 +156,7 @@ export default function SwapPage() {
   const [toToken, setToToken] = useState(TOKENS[1])
   const [fromAmount, setFromAmount] = useState("")
   const [toAmount, setToAmount] = useState("")
-  const [slippage, setSlippage] = useState(5.0) // Default to 5% to accommodate tokens with tax (3-5%)
+  const [slippage, setSlippage] = useState(10.0) // Default to 10% for tax tokens (3-5% tax + buffer)
   const [showSlippageModal, setShowSlippageModal] = useState(false)
   const [customSlippage, setCustomSlippage] = useState("")
   const [isApproved, setIsApproved] = useState(true)
@@ -1264,8 +1264,11 @@ export default function SwapPage() {
                 <p className="text-blue-400 text-sm mb-2">
                   💡 如果交易失败，可能是代币有交易税
                 </p>
-                <p className="text-blue-300 text-xs">
+                <p className="text-blue-300 text-xs mb-2">
                   建议：带税代币设置 10-20% 滑点
+                </p>
+                <p className="text-yellow-400 text-xs">
+                  ⚠️ 错误 "Pancake: K" = 滑点太低，请提高滑点！
                 </p>
               </div>
               
