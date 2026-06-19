@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useAccount, useSwitchChain, useWriteContract, useWaitForTransactionReceipt, useReadContract, useBalance } from "wagmi"
-import { parseEther, formatEther, type Address, isAddress } from "viem"
+import { parseEther, formatEther, parseUnits, formatUnits, type Address, isAddress } from "viem"
 import { bsc } from "wagmi/chains"
 
 // PancakeSwap V2 Router ABI
@@ -167,13 +167,36 @@ export default function SwapPage() {
   const [fromSearchedToken, setFromSearchedToken] = useState<{symbol: string, name: string, address: Address} | null>(null)
   const [toSearchedToken, setToSearchedToken] = useState<{symbol: string, name: string, address: Address} | null>(null)
 
+  // Get token decimals dynamically
+  const { data: fromDecimals } = useReadContract({
+    address: isAddress(fromToken.address) && !fromToken.isNative ? fromToken.address as Address : undefined,
+    abi: ERC20_ABI,
+    functionName: "decimals",
+    query: {
+      enabled: !!fromToken.address && !fromToken.isNative && isAddress(fromToken.address),
+    }
+  })
+
+  const { data: toDecimals } = useReadContract({
+    address: isAddress(toToken.address) && !toToken.isNative ? toToken.address as Address : undefined,
+    abi: ERC20_ABI,
+    functionName: "decimals",
+    query: {
+      enabled: !!toToken.address && !toToken.isNative && isAddress(toToken.address),
+    }
+  })
+
+  // Helper function to get effective decimals (default to 18 for native or if not loaded)
+  const getFromDecimals = () => fromToken.isNative ? 18 : (fromDecimals !== undefined ? fromDecimals : 18)
+  const getToDecimals = () => toToken.isNative ? 18 : (toDecimals !== undefined ? toDecimals : 18)
+
   // Get quote from PancakeSwap
   const { data: amountsOut } = useReadContract({
     address: ROUTER_ADDRESS,
     abi: ROUTER_ABI,
     functionName: "getAmountsOut",
     args: fromAmount && parseFloat(fromAmount) > 0 ? [
-      parseEther(fromAmount),
+      parseUnits(fromAmount, getFromDecimals()),
       [fromToken.address, toToken.address]
     ] : undefined,
     query: {
@@ -261,19 +284,19 @@ export default function SwapPage() {
   // Update toAmount when quote changes
   useEffect(() => {
     if (amountsOut && amountsOut.length > 1) {
-      const formatted = formatEther(amountsOut[1])
+      const formatted = formatUnits(amountsOut[1], getToDecimals())
       setToAmount(parseFloat(formatted).toFixed(6))
     } else {
       setToAmount("")
     }
-  }, [amountsOut])
+  }, [amountsOut, toDecimals])
 
   // Calculate liquidity and price
   const liquidityInfo = (() => {
     if (!reserves || reserves.length < 2) return null
     
-    const reserve0 = parseFloat(formatEther(reserves[0]))
-    const reserve1 = parseFloat(formatEther(reserves[1]))
+    const reserve0 = parseFloat(formatUnits(reserves[0], getFromDecimals()))
+    const reserve1 = parseFloat(formatUnits(reserves[1], getToDecimals()))
     
     // Calculate price (reserve1 / reserve0)
     const price = reserve0 > 0 ? reserve1 / reserve0 : 0
@@ -294,13 +317,13 @@ export default function SwapPage() {
     if (fromToken.isNative) {
       setIsApproved(true)
     } else if (allowance && fromAmount) {
-      const needed = parseEther(fromAmount)
+      const needed = parseUnits(fromAmount, getFromDecimals())
       setIsApproved(allowance >= needed)
     } else {
       // Reset to false when token changes or no amount entered
       setIsApproved(false)
     }
-  }, [allowance, fromAmount, fromToken.address, fromToken.isNative])
+  }, [allowance, fromAmount, fromToken.address, fromToken.isNative, fromDecimals])
 
   // Search token by address for FROM
   const { data: fromTokenSymbol } = useReadContract({
@@ -399,7 +422,7 @@ export default function SwapPage() {
       address: fromToken.address,
       abi: ERC20_ABI,
       functionName: "approve",
-      args: [ROUTER_ADDRESS, parseEther("1000000")],
+      args: [ROUTER_ADDRESS, parseUnits("1000000", getFromDecimals())],
     })
   }
 
@@ -407,8 +430,8 @@ export default function SwapPage() {
     if (!address || !fromAmount || !toAmount) return
     
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200)
-    const amountIn = parseEther(fromAmount)
-    const amountOutMin = parseEther((parseFloat(toAmount) * (1 - slippage / 100)).toString())
+    const amountIn = parseUnits(fromAmount, getFromDecimals())
+    const amountOutMin = parseUnits((parseFloat(toAmount) * (1 - slippage / 100)).toString(), getToDecimals())
     const path = [fromToken.address, toToken.address]
 
     if (fromToken.isNative) {
@@ -446,15 +469,18 @@ export default function SwapPage() {
   }
 
   const isOnBSC = chainId === bsc.id
-  const formattedBalance = displayBalance ? formatEther(displayBalance) : "0"
+  const formattedBalance = displayBalance ? formatUnits(displayBalance, getFromDecimals()) : "0"
   
-  // Check if user has enough balance
+  // Check if user has enough balance (using BigInt for precision)
   const hasEnoughBalance = (() => {
     if (fromToken.isNative) return true // BNB balance check would need separate logic
     if (!balance || !fromAmount) return true
-    const balanceNum = parseFloat(formattedBalance)
-    const neededNum = parseFloat(fromAmount)
-    return balanceNum >= neededNum
+    try {
+      const needed = parseUnits(fromAmount, getFromDecimals())
+      return balance >= needed
+    } catch (e) {
+      return false
+    }
   })()
 
   return (
@@ -707,7 +733,7 @@ export default function SwapPage() {
                 <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">To</span>
                 {address && !toToken.isNative && toBalance !== undefined && (
                   <span className="text-[10px] text-white font-bold">
-                    余额: {parseFloat(formatEther(toBalance)).toFixed(4)}
+                    余额: {parseFloat(formatUnits(toBalance, getToDecimals())).toFixed(4)}
                   </span>
                 )}
                 {address && toToken.isNative && toBnbBalance && (
