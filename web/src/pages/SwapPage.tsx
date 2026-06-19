@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import { useAccount, useSwitchChain, useWriteContract, useWaitForTransactionReceipt, useReadContract, useBalance } from "wagmi"
+import { useAccount, useSwitchChain, useWriteContract, useWaitForTransactionReceipt, useReadContract, useBalance, usePublicClient } from "wagmi"
 import { formatEther, parseUnits, formatUnits, type Address, isAddress } from "viem"
 import { bsc } from "wagmi/chains"
 
@@ -187,6 +187,11 @@ type TokenOption = {
   name?: string
 }
 
+type RouteQuote = {
+  path: Address[]
+  amountsOut: bigint[]
+}
+
 const TOKENS: TokenOption[] = [
   { symbol: "BNB", address: WBNB, isNative: true, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c.png" },
   { symbol: "USDT", address: "0x55d398326f99059fF775485246999027B3197955" as Address, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x55d398326f99059fF775485246999027B3197955.png" },
@@ -198,6 +203,7 @@ const TOKENS: TokenOption[] = [
 export default function SwapPage() {
   const { address, chainId } = useAccount()
   const { switchChain } = useSwitchChain()
+  const publicClient = usePublicClient({ chainId: bsc.id })
   
   const [fromToken, setFromToken] = useState(TOKENS[0])
   const [toToken, setToToken] = useState(TOKENS[1])
@@ -310,6 +316,40 @@ export default function SwapPage() {
     () => parseAmountValue(fromAmount, fromTokenDecimals),
     [fromAmount, fromTokenDecimals]
   )
+  const [routeQuote, setRouteQuote] = useState<RouteQuote | null>(null)
+  const [routeError, setRouteError] = useState<string | null>(null)
+  const [isRouteLoading, setIsRouteLoading] = useState(false)
+
+  const candidatePaths = useMemo(() => {
+    const fromAddress = fromToken.address
+    const toAddress = toToken.address
+    const intermediaries = [
+      WBNB,
+      TOKENS.find((token) => token.symbol === "USDT")?.address,
+      TOKENS.find((token) => token.symbol === "BUSD")?.address,
+      TOKENS.find((token) => token.symbol === "CAKE")?.address,
+    ].filter((address): address is Address => !!address)
+
+    const pathMap = new Map<string, Address[]>()
+    const addPath = (path: Address[]) => {
+      if (path.length < 2) return
+      if (path[0] === path[path.length - 1]) return
+      if (new Set(path).size !== path.length) return
+      pathMap.set(path.join("-"), path)
+    }
+
+    addPath([fromAddress, toAddress])
+    for (const intermediate of intermediaries) {
+      if (intermediate === fromAddress || intermediate === toAddress) continue
+      addPath([fromAddress, intermediate, toAddress])
+    }
+
+    return Array.from(pathMap.values())
+  }, [fromToken.address, toToken.address])
+
+  const amountsOut = routeQuote?.amountsOut ?? null
+  const selectedPath = routeQuote?.path ?? null
+  const selectedOutput = amountsOut && amountsOut.length > 0 ? amountsOut[amountsOut.length - 1] : 0n
   
   // Check if we can proceed with swap
   const canSwap = () => {
@@ -317,34 +357,94 @@ export default function SwapPage() {
     return true
   }
 
-  // Get quote from PancakeSwap
-  const { data: amountsOut, error: quoteError } = useReadContract({
-    address: ROUTER_ADDRESS,
-    abi: ROUTER_ABI,
-    functionName: "getAmountsOut",
-    args: parsedFromAmount !== null && parsedFromAmount > 0n ? [
-      parsedFromAmount,
-      [fromToken.address, toToken.address]
-    ] : undefined,
-    query: {
-      enabled: parsedFromAmount !== null && parsedFromAmount > 0n,
-      retry: 1,
-    }
-  })
-
-  // Log quote errors and check for zero output
+  // Get best quote from PancakeSwap across common routing paths
   useEffect(() => {
-    if (quoteError) {
-      console.warn(`[SwapPage] Failed to get quote for ${fromToken.symbol} → ${toToken.symbol}:`, quoteError.message)
+    if (!publicClient || parsedFromAmount === null || parsedFromAmount <= 0n || fromToken.address === toToken.address) {
+      setRouteQuote(null)
+      setRouteError(null)
+      setIsRouteLoading(false)
+      return
     }
-    
-    // Check if Router returns 0 output - this means the trade will fail
-    if (amountsOut && amountsOut.length > 1 && amountsOut[1] === BigInt(0)) {
-      console.error(`❌ [SwapPage] CRITICAL: Router returns 0 output for ${fromAmount} ${fromToken.symbol}`)
+
+    let cancelled = false
+
+    const fetchBestRoute = async () => {
+      setIsRouteLoading(true)
+      setRouteQuote(null)
+      setRouteError(null)
+
+      const results = await Promise.all(
+        candidatePaths.map(async (path) => {
+          try {
+            const result = await publicClient.readContract({
+              address: ROUTER_ADDRESS,
+              abi: ROUTER_ABI,
+              functionName: "getAmountsOut",
+              args: [parsedFromAmount, path],
+            })
+
+            const amounts = Array.from(result as readonly bigint[])
+            const output = amounts[amounts.length - 1] ?? 0n
+            if (output <= 0n) return null
+
+            return {
+              path,
+              amountsOut: amounts,
+              output,
+            }
+          } catch {
+            return null
+          }
+        })
+      )
+
+      if (cancelled) return
+
+      const validRoutes = results.filter((item): item is RouteQuote & { output: bigint } => item !== null)
+      validRoutes.sort((a, b) => {
+        if (a.output === b.output) return a.path.length - b.path.length
+        return a.output > b.output ? -1 : 1
+      })
+
+      if (validRoutes.length === 0) {
+        setRouteQuote(null)
+        setRouteError("未找到可用路由")
+        setIsRouteLoading(false)
+        return
+      }
+
+      setRouteQuote({
+        path: validRoutes[0].path,
+        amountsOut: validRoutes[0].amountsOut,
+      })
+      setRouteError(null)
+      setIsRouteLoading(false)
+    }
+
+    fetchBestRoute().catch((error) => {
+      if (cancelled) return
+      console.warn(`[SwapPage] Failed to get quote for ${fromToken.symbol} → ${toToken.symbol}:`, error)
+      setRouteQuote(null)
+      setRouteError("获取路由报价失败")
+      setIsRouteLoading(false)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [candidatePaths, fromToken.address, fromToken.symbol, parsedFromAmount, publicClient, toToken.address, toToken.symbol])
+
+  useEffect(() => {
+    if (routeError) {
+      console.warn(`[SwapPage] Route quote unavailable for ${fromToken.symbol} → ${toToken.symbol}: ${routeError}`)
+    }
+
+    if (!isRouteLoading && parsedFromAmount !== null && parsedFromAmount > 0n && selectedOutput === 0n) {
+      console.error(`❌ [SwapPage] CRITICAL: No route produces output for ${fromAmount} ${fromToken.symbol}`)
       console.error(`   This means the token amount is too small relative to pool reserves`)
       console.error(`   The trade will fail with "Pancake: K" error regardless of slippage`)
     }
-  }, [quoteError, amountsOut, fromAmount, fromToken.symbol, toToken.symbol])
+  }, [routeError, isRouteLoading, parsedFromAmount, selectedOutput, fromAmount, fromToken.symbol, toToken.symbol])
 
   // Get pair address for liquidity info (sort addresses alphabetically)
   const sortedPairAddresses = [fromToken.address, toToken.address].sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : 1)
@@ -427,9 +527,9 @@ export default function SwapPage() {
 
   // Update toAmount when quote changes
   useEffect(() => {
-    if (amountsOut && amountsOut.length > 1) {
+    if (selectedOutput > 0n) {
       try {
-        setToAmount(formatAmountForDisplay(amountsOut[1], toTokenDecimals))
+        setToAmount(formatAmountForDisplay(selectedOutput, toTokenDecimals))
       } catch (e) {
         console.error("格式化报价失败:", e)
         setToAmount("")
@@ -437,10 +537,10 @@ export default function SwapPage() {
     } else {
       setToAmount("")
     }
-  }, [amountsOut, toTokenDecimals])
+  }, [selectedOutput, toTokenDecimals])
   
   // Check for zero output and show warning
-  const hasZeroOutput = amountsOut && amountsOut.length > 1 && amountsOut[1] === BigInt(0)
+  const hasZeroOutput = parsedFromAmount !== null && parsedFromAmount > 0n && !isRouteLoading && selectedOutput === 0n
 
   // Calculate liquidity and price
   const liquidityInfo = (() => {
@@ -598,7 +698,7 @@ export default function SwapPage() {
       console.error('❌ 交易错误:', txError)
       alert(`交易出错：${txError?.message || '未知错误'}\n\n请检查网络连接或稍后重试。`)
     }
-  }, [allowance, amountsOut, balance, fromAmount, fromToken, isTxError, pairAddress, toAmount, toToken, txError])
+  }, [allowance, balance, fromAmount, fromToken, isTxError, toAmount, toToken, txError])
 
   // Refetch allowance after approval transaction is confirmed
   useEffect(() => {
@@ -649,17 +749,9 @@ export default function SwapPage() {
       return
     }
     
-    // Check if Router returns 0 output - this trade will definitely fail
-    if (amountsOut && amountsOut.length > 1 && amountsOut[1] === BigInt(0)) {
-      console.error('❌ 交易被阻止: Router 返回 0 输出')
-      alert(`⚠️ 无法执行交易！\n\n原因：${fromAmount} ${fromToken.symbol} 的价值太低\n预期获得: 0 BNB\n\n解决方案：\n- 增加卖出数量\n- 或者该代币可能没有足够的流动性`)
-      return
-    }
-    
-    // Check if pair exists
-    if (!pairAddress || pairAddress === '0x0000000000000000000000000000000000000000') {
-      console.error("交易对不存在:", { from: fromToken.address, to: toToken.address })
-      alert(`交易对不存在：${fromToken.symbol} / ${toToken.symbol}\n\n请确保这两个代币在 PancakeSwap 上有流动性池`)
+    if (!selectedPath || selectedOutput === 0n) {
+      console.error('❌ 交易被阻止: 未找到可用卖出路由')
+      alert(`⚠️ 无法执行交易！\n\n原因：当前常用路由都无法卖出 ${fromAmount} ${fromToken.symbol}\n\n解决方案：\n- 增加卖出数量\n- 或尝试更高流动性的目标币\n- 或该代币当前没有可用卖出路径`)
       return
     }
     
@@ -734,7 +826,7 @@ export default function SwapPage() {
         alert(toDec === 0 ? `目标代币是 0 精度，预估输出必须是整数` : `预估输出金额格式不正确`)
         return
       }
-      const amountsOutValue = amountsOut && amountsOut.length > 1 ? amountsOut[1] : (fallbackAmountOut ?? 0n)
+      const amountsOutValue = selectedOutput > 0n ? selectedOutput : (fallbackAmountOut ?? 0n)
       
       console.log("[DEBUG] 滑点计算:", {
         amountsOut: amountsOut?.map(a => a.toString()),
@@ -757,7 +849,7 @@ export default function SwapPage() {
       // IMPORTANT: Path must be in the correct order for the swap direction
       // For sell (token -> BNB): [tokenAddress, WBNB]
       // For buy (BNB -> token): [WBNB, tokenAddress]
-      const path = [fromToken.address, toToken.address]
+      const path = selectedPath
       
       console.log("交易参数:", {
         fromToken: fromToken.symbol,
@@ -1307,10 +1399,10 @@ export default function SwapPage() {
                 <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-2 mb-2">
                   <p className="text-red-400 text-xs font-semibold mb-1">⚠️ 警告</p>
                   <p className="text-red-300 text-xs">
-                    {fromAmount} {fromToken.symbol} 的价值太低，Router 返回 0 BNB
+                    {fromAmount} {fromToken.symbol} 当前在常用路由里没有可用输出
                   </p>
                   <p className="text-red-300 text-xs mt-1">
-                    请增加卖出数量或检查流动性
+                    请增加卖出数量、切换目标币，或检查流动性路径
                   </p>
                 </div>
               )}
@@ -1318,8 +1410,8 @@ export default function SwapPage() {
               <div className="flex justify-between items-center text-xs">
                 <span className="text-gray-300">价格</span>
                 <span className="text-white font-medium">
-                  {amountsOut && amountsOut.length > 1 ? (
-                    `1 ${fromToken.symbol} ≈ ${formatAmountForDisplay(amountsOut[1], toTokenDecimals)} ${toToken.symbol}`
+                  {selectedOutput > 0n ? (
+                    `1 ${fromToken.symbol} ≈ ${formatAmountForDisplay(selectedOutput, toTokenDecimals)} ${toToken.symbol}`
                   ) : (
                     `1 ${fromToken.symbol} ≈ ${liquidityInfo.price.toFixed(6)} ${toToken.symbol}`
                   )}
