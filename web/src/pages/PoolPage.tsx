@@ -461,11 +461,14 @@ export default function PoolPage() {
   })()
   
   // Remove Liquidity: Get pair and LP balance
+  // Note: getPair requires tokens to be sorted by address
+  const sortedTokens = [removeTokenA.address, removeTokenB.address].sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : 1)
+  
   const { data: removePairAddress } = useReadContract({
     address: FACTORY_ADDRESS,
     abi: FACTORY_ABI,
     functionName: "getPair",
-    args: [removeTokenA.address, removeTokenB.address],
+    args: [sortedTokens[0] as Address, sortedTokens[1] as Address],
     query: {
       enabled: true,
     }
@@ -560,8 +563,13 @@ export default function PoolPage() {
   }
   
   const handleRemoveLiquidity = () => {
-    if (!address || !lpBalance || lpBalance === 0n) {
-      alert("您没有该交易对的流动性凭证 (LP Token)，无法移除。")
+    if (!address) {
+      alert("请先连接钱包")
+      return
+    }
+    
+    if (!lpBalance || lpBalance === 0n) {
+      alert(`您没有该交易对的流动性凭证 (LP Token)。\n\nPair 地址: ${removePairAddress || '未找到'}\nLP 余额: ${lpBalance?.toString() || '0'}`)
       return
     }
     
@@ -573,15 +581,20 @@ export default function PoolPage() {
     const amountBMin = 1n
     
     console.log("正在尝试移除流动性...", {
-      tokenA: removeTokenA.address,
-      tokenB: removeTokenB.address,
-      liquidity: liquidityToRemove.toString(),
-      isNative: removeTokenA.isNative || removeTokenB.isNative
+      tokenA: `${removeTokenA.symbol} (${removeTokenA.address})`,
+      tokenB: `${removeTokenB.symbol} (${removeTokenB.address})`,
+      pairAddress: removePairAddress,
+      lpBalance: lpBalance.toString(),
+      liquidityToRemove: liquidityToRemove.toString(),
+      percentage: removePercentage,
+      isNative: removeTokenA.isNative || removeTokenB.isNative,
+      gasLimit: removeTokenA.isNative || removeTokenB.isNative ? 400000 : 350000
     })
 
     try {
       if (removeTokenA.isNative || removeTokenB.isNative) {
         const token = removeTokenA.isNative ? removeTokenB.address : removeTokenA.address
+        console.log("调用 removeLiquidityETH...")
         removeLiquidityTx({
           address: ROUTER_ADDRESS,
           abi: ROUTER_ABI,
@@ -590,6 +603,7 @@ export default function PoolPage() {
           gas: BigInt(400000), // Explicitly set gas limit to prevent estimation failure
         })
       } else {
+        console.log("调用 removeLiquidity...")
         removeLiquidityTx({
           address: ROUTER_ADDRESS,
           abi: ROUTER_ABI,
@@ -600,7 +614,7 @@ export default function PoolPage() {
       }
     } catch (error) {
       console.error("移除流动性调用失败:", error)
-      alert("交易发起失败，请检查控制台日志或钱包连接状态。")
+      alert(`交易发起失败: ${error instanceof Error ? error.message : '未知错误'}\n\n请检查控制台日志获取详细信息。`)
     }
   }
 
