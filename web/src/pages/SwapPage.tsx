@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useAccount, useSwitchChain, useWriteContract, useWaitForTransactionReceipt, useReadContract, useBalance } from "wagmi"
-import { parseEther, formatEther, parseUnits, formatUnits, type Address, isAddress } from "viem"
+import { formatEther, parseUnits, formatUnits, type Address, isAddress } from "viem"
 import { bsc } from "wagmi/chains"
 
 // PancakeSwap V2 Router ABI
@@ -41,6 +41,18 @@ const ROUTER_ABI = [
     outputs: [{ name: "amounts", type: "uint256[]" }]
   },
   {
+    name: "swapExactETHForTokensSupportingFeeOnTransferTokens",
+    type: "function",
+    stateMutability: "payable",
+    inputs: [
+      { name: "amountOutMin", type: "uint256" },
+      { name: "path", type: "address[]" },
+      { name: "to", type: "address" },
+      { name: "deadline", type: "uint256" }
+    ],
+    outputs: []
+  },
+  {
     name: "swapExactTokensForETH",
     type: "function",
     stateMutability: "nonpayable",
@@ -52,6 +64,32 @@ const ROUTER_ABI = [
       { name: "deadline", type: "uint256" }
     ],
     outputs: [{ name: "amounts", type: "uint256[]" }]
+  },
+  {
+    name: "swapExactTokensForETHSupportingFeeOnTransferTokens",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "amountIn", type: "uint256" },
+      { name: "amountOutMin", type: "uint256" },
+      { name: "path", type: "address[]" },
+      { name: "to", type: "address" },
+      { name: "deadline", type: "uint256" }
+    ],
+    outputs: []
+  },
+  {
+    name: "swapExactTokensForTokensSupportingFeeOnTransferTokens",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "amountIn", type: "uint256" },
+      { name: "amountOutMin", type: "uint256" },
+      { name: "path", type: "address[]" },
+      { name: "to", type: "address" },
+      { name: "deadline", type: "uint256" }
+    ],
+    outputs: []
   }
 ] as const
 
@@ -140,12 +178,21 @@ const PAIR_ABI = [
   }
 ] as const
 
-const TOKENS = [
-  { symbol: "BNB", address: WBNB, isNative: true, logo: "https://tokens.pancakeswap.finance/images/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c.png" },
-  { symbol: "USDT", address: "0x55d398326f99059fF775485246999027B3197955" as Address, logo: "https://tokens.pancakeswap.finance/images/0x55d398326f99059fF775485246999027B3197955.png" },
-  { symbol: "BUSD", address: "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56" as Address, logo: "https://tokens.pancakeswap.finance/images/0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56.png" },
-  { symbol: "CAKE", address: "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82" as Address, logo: "https://tokens.pancakeswap.finance/images/0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82.png" },
-  { symbol: "ETH", address: "0x2170Ed0880ac9A755FD29B2688956BD959F933F8" as Address, logo: "https://tokens.pancakeswap.finance/images/0x2170Ed0880ac9A755FD29B2688956BD959F933F8.png" },
+type TokenOption = {
+  symbol: string
+  address: Address
+  isNative?: boolean
+  logo?: string
+  decimals?: number
+  name?: string
+}
+
+const TOKENS: TokenOption[] = [
+  { symbol: "BNB", address: WBNB, isNative: true, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c.png" },
+  { symbol: "USDT", address: "0x55d398326f99059fF775485246999027B3197955" as Address, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x55d398326f99059fF775485246999027B3197955.png" },
+  { symbol: "BUSD", address: "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56" as Address, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56.png" },
+  { symbol: "CAKE", address: "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82" as Address, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82.png" },
+  { symbol: "ETH", address: "0x2170Ed0880ac9A755FD29B2688956BD959F933F8" as Address, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x2170Ed0880ac9A755FD29B2688956BD959F933F8.png" },
 ]
 
 export default function SwapPage() {
@@ -164,8 +211,8 @@ export default function SwapPage() {
   const [showToSearch, setShowToSearch] = useState(false)
   const [fromCustomAddress, setFromCustomAddress] = useState("")
   const [toCustomAddress, setToCustomAddress] = useState("")
-  const [fromSearchedToken, setFromSearchedToken] = useState<{symbol: string, name: string, address: Address} | null>(null)
-  const [toSearchedToken, setToSearchedToken] = useState<{symbol: string, name: string, address: Address} | null>(null)
+  const [fromSearchedToken, setFromSearchedToken] = useState<TokenOption | null>(null)
+  const [toSearchedToken, setToSearchedToken] = useState<TokenOption | null>(null)
 
   // Get token decimals with timeout protection
   const { data: fromDecimals, isLoading: isFromDecimalsLoading, error: fromDecimalsError } = useReadContract({
@@ -211,6 +258,7 @@ export default function SwapPage() {
   // PancakeSwap-style: get decimals with fallback to 18
   const getFromDecimals = (): number => {
     if (fromToken.isNative) return 18
+    if (fromToken.decimals !== undefined) return fromToken.decimals
     // If we got decimals from chain, use it. Otherwise default to 18.
     const decimals = fromDecimals !== undefined ? Number(fromDecimals) : 18
     console.log(`[DEBUG] From Token ${fromToken.symbol}:`, {
@@ -224,6 +272,7 @@ export default function SwapPage() {
   
   const getToDecimals = (): number => {
     if (toToken.isNative) return 18
+    if (toToken.decimals !== undefined) return toToken.decimals
     // If we got decimals from chain, use it. Otherwise default to 18.
     const decimals = toDecimals !== undefined ? Number(toDecimals) : 18
     console.log(`[DEBUG] To Token ${toToken.symbol}:`, {
@@ -430,17 +479,27 @@ export default function SwapPage() {
     }
   })
 
+  const { data: fromSearchDecimals } = useReadContract({
+    address: isAddress(fromCustomAddress) ? fromCustomAddress as Address : undefined,
+    abi: ERC20_ABI,
+    functionName: "decimals",
+    query: {
+      enabled: isAddress(fromCustomAddress),
+    }
+  })
+
   useEffect(() => {
-    if (fromTokenSymbol && fromTokenName && isAddress(fromCustomAddress)) {
+    if (fromTokenSymbol && fromTokenName && fromSearchDecimals !== undefined && isAddress(fromCustomAddress)) {
       setFromSearchedToken({
         symbol: String(fromTokenSymbol),
         name: String(fromTokenName),
         address: fromCustomAddress as Address,
+        decimals: Number(fromSearchDecimals),
       })
     } else {
       setFromSearchedToken(null)
     }
-  }, [fromTokenSymbol, fromTokenName, fromCustomAddress])
+  }, [fromSearchDecimals, fromTokenSymbol, fromTokenName, fromCustomAddress])
 
   // Search token by address for TO
   const { data: toTokenSymbol } = useReadContract({
@@ -461,17 +520,27 @@ export default function SwapPage() {
     }
   })
 
+  const { data: toSearchDecimals } = useReadContract({
+    address: isAddress(toCustomAddress) ? toCustomAddress as Address : undefined,
+    abi: ERC20_ABI,
+    functionName: "decimals",
+    query: {
+      enabled: isAddress(toCustomAddress),
+    }
+  })
+
   useEffect(() => {
-    if (toTokenSymbol && toTokenName && isAddress(toCustomAddress)) {
+    if (toTokenSymbol && toTokenName && toSearchDecimals !== undefined && isAddress(toCustomAddress)) {
       setToSearchedToken({
         symbol: String(toTokenSymbol),
         name: String(toTokenName),
         address: toCustomAddress as Address,
+        decimals: Number(toSearchDecimals),
       })
     } else {
       setToSearchedToken(null)
     }
-  }, [toTokenSymbol, toTokenName, toCustomAddress])
+  }, [toSearchDecimals, toTokenSymbol, toTokenName, toCustomAddress])
 
 
   // Approve token
@@ -491,7 +560,7 @@ export default function SwapPage() {
       console.error('交易哈希:', txHash)
       alert('交易失败！可能原因：\n1. 滑点设置过低\n2. 流动性不足\n3. Gas 不足\n4. 代币合约有特殊限制\n\n请查看控制台日志获取详细信息。')
     }
-  }, [receipt, txHash])
+  }, [fromToken.address, fromToken.symbol, receipt, toToken.address, toToken.symbol, txHash])
 
   // Check for transaction errors or timeout
   useEffect(() => {
@@ -499,7 +568,7 @@ export default function SwapPage() {
       console.error('❌ 交易错误:', txError)
       alert(`交易出错：${txError?.message || '未知错误'}\n\n请检查网络连接或稍后重试。`)
     }
-  }, [isTxError, txError])
+  }, [allowance, amountsOut, balance, fromAmount, fromToken, isTxError, pairAddress, toAmount, toToken, txError])
 
   // Refetch allowance after approval transaction is confirmed
   useEffect(() => {
@@ -660,32 +729,31 @@ export default function SwapPage() {
         deadline: deadline.toString(),
         slippageBps: slippageBps.toString()
       })
-      
       if (fromToken.isNative) {
-        console.log("执行 swapExactETHForTokens")
+        console.log("执行 swapExactETHForTokensSupportingFeeOnTransferTokens")
         swap({
           address: ROUTER_ADDRESS,
           abi: ROUTER_ABI,
-          functionName: "swapExactETHForTokens",
+          functionName: "swapExactETHForTokensSupportingFeeOnTransferTokens",
           args: [amountOutMin, path, address, deadline],
           value: amountIn,
           gas: BigInt(600000), // Higher gas for tax tokens
         })
       } else if (toToken.isNative) {
-        console.log("执行 swapExactTokensForETH")
+        console.log("执行 swapExactTokensForETHSupportingFeeOnTransferTokens")
         swap({
           address: ROUTER_ADDRESS,
           abi: ROUTER_ABI,
-          functionName: "swapExactTokensForETH",
+          functionName: "swapExactTokensForETHSupportingFeeOnTransferTokens",
           args: [amountIn, amountOutMin, path, address, deadline],
           gas: BigInt(800000), // Much higher gas for selling tax tokens
         })
       } else {
-        console.log("执行 swapExactTokensForTokens")
+        console.log("执行 swapExactTokensForTokensSupportingFeeOnTransferTokens")
         swap({
           address: ROUTER_ADDRESS,
           abi: ROUTER_ABI,
-          functionName: "swapExactTokensForTokens",
+          functionName: "swapExactTokensForTokensSupportingFeeOnTransferTokens",
           args: [amountIn, amountOutMin, path, address, deadline],
           gas: BigInt(800000), // Much higher gas for tax tokens
         })
@@ -860,6 +928,7 @@ export default function SwapPage() {
                                 symbol: fromSearchedToken.symbol,
                                 address: fromSearchedToken.address,
                                 isNative: false,
+                                decimals: fromSearchedToken.decimals,
                                 logo: `https://tokens.pancakeswap.finance/images/${fromSearchedToken.address}.png`,
                               }
                               setFromToken(newToken)
@@ -1076,6 +1145,7 @@ export default function SwapPage() {
                                 symbol: toSearchedToken.symbol,
                                 address: toSearchedToken.address,
                                 isNative: false,
+                                decimals: toSearchedToken.decimals,
                                 logo: `https://tokens.pancakeswap.finance/images/${toSearchedToken.address}.png`,
                               }
                               setToToken(newToken)

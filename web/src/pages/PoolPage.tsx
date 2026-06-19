@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useAccount, useSwitchChain, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance } from "wagmi"
-import { parseEther, formatEther, type Address, isAddress } from "viem"
+import { parseUnits, formatUnits, formatEther, type Address, isAddress } from "viem"
 import { bsc } from "wagmi/chains"
 
 // PancakeSwap V2 Router ABI
@@ -87,6 +87,20 @@ const ROUTER_ABI = [
       { name: "amountToken", type: "uint256" },
       { name: "amountETH", type: "uint256" }
     ]
+  },
+  {
+    name: "removeLiquidityETHSupportingFeeOnTransferTokens",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "token", type: "address" },
+      { name: "liquidity", type: "uint256" },
+      { name: "amountTokenMin", type: "uint256" },
+      { name: "amountETHMin", type: "uint256" },
+      { name: "to", type: "address" },
+      { name: "deadline", type: "uint256" }
+    ],
+    outputs: [{ name: "amountETH", type: "uint256" }]
   }
 ] as const
 
@@ -178,12 +192,21 @@ const PAIR_ABI = [
   }
 ] as const
 
-const TOKENS = [
-  { symbol: "BNB", address: WBNB, isNative: true, logo: "https://tokens.pancakeswap.finance/images/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c.png" },
-  { symbol: "USDT", address: "0x55d398326f99059fF775485246999027B3197955" as Address, logo: "https://tokens.pancakeswap.finance/images/0x55d398326f99059fF775485246999027B3197955.png" },
-  { symbol: "BUSD", address: "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56" as Address, logo: "https://tokens.pancakeswap.finance/images/0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56.png" },
-  { symbol: "CAKE", address: "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82" as Address, logo: "https://tokens.pancakeswap.finance/images/0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82.png" },
-  { symbol: "ETH", address: "0x2170Ed0880ac9A755FD29B2688956BD959F933F8" as Address, logo: "https://tokens.pancakeswap.finance/images/0x2170Ed0880ac9A755FD29B2688956BD959F933F8.png" },
+type TokenOption = {
+  symbol: string
+  address: Address
+  isNative?: boolean
+  logo?: string
+  decimals?: number
+  name?: string
+}
+
+const TOKENS: TokenOption[] = [
+  { symbol: "BNB", address: WBNB, isNative: true, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c.png" },
+  { symbol: "USDT", address: "0x55d398326f99059fF775485246999027B3197955" as Address, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x55d398326f99059fF775485246999027B3197955.png" },
+  { symbol: "BUSD", address: "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56" as Address, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56.png" },
+  { symbol: "CAKE", address: "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82" as Address, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82.png" },
+  { symbol: "ETH", address: "0x2170Ed0880ac9A755FD29B2688956BD959F933F8" as Address, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x2170Ed0880ac9A755FD29B2688956BD959F933F8.png" },
 ]
 
 export default function PoolPage() {
@@ -204,8 +227,8 @@ export default function PoolPage() {
   const [customSlippage, setCustomSlippage] = useState("")
   
   // Searched token info
-  const [fromSearchedToken, setFromSearchedToken] = useState<{symbol: string, name: string, address: Address} | null>(null)
-  const [toSearchedToken, setToSearchedToken] = useState<{symbol: string, name: string, address: Address} | null>(null)
+  const [fromSearchedToken, setFromSearchedToken] = useState<TokenOption | null>(null)
+  const [toSearchedToken, setToSearchedToken] = useState<TokenOption | null>(null)
   
   // Search token by address for Token A
   const { data: fromTokenSymbol } = useReadContract({
@@ -226,17 +249,27 @@ export default function PoolPage() {
     }
   })
 
+  const { data: fromTokenDecimals } = useReadContract({
+    address: isAddress(fromCustomAddress) ? fromCustomAddress as Address : undefined,
+    abi: ERC20_ABI,
+    functionName: "decimals",
+    query: {
+      enabled: isAddress(fromCustomAddress),
+    }
+  })
+
   useEffect(() => {
-    if (fromTokenSymbol && fromTokenName && isAddress(fromCustomAddress)) {
+    if (fromTokenSymbol && fromTokenName && fromTokenDecimals !== undefined && isAddress(fromCustomAddress)) {
       setFromSearchedToken({
         symbol: String(fromTokenSymbol),
         name: String(fromTokenName),
         address: fromCustomAddress as Address,
+        decimals: Number(fromTokenDecimals),
       })
     } else {
       setFromSearchedToken(null)
     }
-  }, [fromTokenSymbol, fromTokenName, fromCustomAddress])
+  }, [fromTokenDecimals, fromTokenSymbol, fromTokenName, fromCustomAddress])
 
   // Search token by address for Token B
   const { data: toTokenSymbol } = useReadContract({
@@ -257,17 +290,30 @@ export default function PoolPage() {
     }
   })
 
+  const { data: toTokenDecimals } = useReadContract({
+    address: isAddress(toCustomAddress) ? toCustomAddress as Address : undefined,
+    abi: ERC20_ABI,
+    functionName: "decimals",
+    query: {
+      enabled: isAddress(toCustomAddress),
+    }
+  })
+
   useEffect(() => {
-    if (toTokenSymbol && toTokenName && isAddress(toCustomAddress)) {
+    if (toTokenSymbol && toTokenName && toTokenDecimals !== undefined && isAddress(toCustomAddress)) {
       setToSearchedToken({
         symbol: String(toTokenSymbol),
         name: String(toTokenName),
         address: toCustomAddress as Address,
+        decimals: Number(toTokenDecimals),
       })
     } else {
       setToSearchedToken(null)
     }
-  }, [toTokenSymbol, toTokenName, toCustomAddress])
+  }, [toTokenDecimals, toTokenSymbol, toTokenName, toCustomAddress])
+
+  const getPoolTokenADecimals = () => (poolTokenA.isNative ? 18 : (poolTokenA.decimals ?? 18))
+  const getPoolTokenBDecimals = () => (poolTokenB.isNative ? 18 : (poolTokenB.decimals ?? 18))
   
   // Remove Liquidity states
   const [removeTokenA, setRemoveTokenA] = useState(TOKENS[0])
@@ -350,7 +396,7 @@ export default function PoolPage() {
     abi: ROUTER_ABI,
     functionName: "getAmountsOut",
     args: amountA && parseFloat(amountA) > 0 ? [
-      parseEther(amountA),
+      parseUnits(amountA, getPoolTokenADecimals()),
       [poolTokenA.address, poolTokenB.address]
     ] : undefined,
     query: {
@@ -399,18 +445,18 @@ export default function PoolPage() {
   // Update amountB when quote changes (Auto-match value)
   useEffect(() => {
     if (poolAmountsOut && poolAmountsOut.length > 1) {
-      const formatted = formatEther(poolAmountsOut[1])
+      const formatted = formatUnits(poolAmountsOut[1], getPoolTokenBDecimals())
       setAmountB(parseFloat(formatted).toFixed(6))
     } else if (!amountA) {
       setAmountB("")
     }
-  }, [poolAmountsOut, amountA])
+  }, [amountA, poolAmountsOut, poolTokenB])
 
   // Calculate pool price from PancakeSwap quote for display
   const poolPriceInfo = (() => {
     if (!poolAmountsOut || poolAmountsOut.length < 2 || !amountA || parseFloat(amountA) <= 0) return null
     
-    const amountBFromQuote = parseFloat(formatEther(poolAmountsOut[1]))
+    const amountBFromQuote = parseFloat(formatUnits(poolAmountsOut[1], getPoolTokenBDecimals()))
     const amountAValue = parseFloat(amountA)
     
     if (amountAValue <= 0) return null
@@ -451,13 +497,13 @@ export default function PoolPage() {
   const isTokenAAproved = (() => {
     if (poolTokenA.isNative) return true
     if (!tokenAAllowance || !amountA) return false
-    return tokenAAllowance >= parseEther(amountA)
+    return tokenAAllowance >= parseUnits(amountA, getPoolTokenADecimals())
   })()
   
   const isTokenBApproved = (() => {
     if (poolTokenB.isNative) return true
     if (!tokenBAllowance || !amountB) return false
-    return tokenBAllowance >= parseEther(amountB)
+    return tokenBAllowance >= parseUnits(amountB, getPoolTokenBDecimals())
   })()
   
   // Remove Liquidity: Get pair and LP balance
@@ -492,11 +538,23 @@ export default function PoolPage() {
       enabled: !!removePairAddress && removePairAddress !== '0x0000000000000000000000000000000000000000',
     }
   })
+
+  const { data: lpAllowance } = useReadContract({
+    address: removePairAddress && removePairAddress !== '0x0000000000000000000000000000000000000000' ? removePairAddress as Address : undefined,
+    abi: ERC20_ABI,
+    functionName: "allowance",
+    args: address ? [address, ROUTER_ADDRESS] : undefined,
+    query: {
+      enabled: !!address && !!removePairAddress && removePairAddress !== '0x0000000000000000000000000000000000000000',
+    }
+  })
   
   const hasLiquidity = lpBalance && lpBalance > 0n
   const lpSharePercentage = lpBalance && lpTotalSupply && lpTotalSupply > 0n 
     ? (Number(lpBalance) / Number(lpTotalSupply)) * 100 
     : 0
+  const liquidityToRemove = lpBalance ? lpBalance * BigInt(removePercentage) / BigInt(100) : 0n
+  const hasLpApproval = !!lpAllowance && liquidityToRemove > 0n && lpAllowance >= liquidityToRemove
   
   // Write contracts for add/remove liquidity
   const { writeContract: approveToken, isPending: isApproving } = useWriteContract()
@@ -538,8 +596,8 @@ export default function PoolPage() {
     if (!address || !amountA || !amountB) return
     
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200)
-    const amountADesired = parseEther(amountA)
-    const amountBDesired = parseEther(amountB)
+    const amountADesired = parseUnits(amountA, getPoolTokenADecimals())
+    const amountBDesired = parseUnits(amountB, getPoolTokenBDecimals())
     const slippageTolerance = slippage / 100
     const amountAMin = amountADesired * BigInt(Math.floor((1 - slippageTolerance) * 1000)) / BigInt(1000)
     const amountBMin = amountBDesired * BigInt(Math.floor((1 - slippageTolerance) * 1000)) / BigInt(1000)
@@ -597,7 +655,6 @@ export default function PoolPage() {
     }
     
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200)
-    const liquidityToRemove = lpBalance * BigInt(removePercentage) / BigInt(100)
     
     console.log("9. 要移除的流动性:", liquidityToRemove.toString())
     console.log("10. Deadline:", deadline.toString())
@@ -620,7 +677,7 @@ export default function PoolPage() {
     try {
       if (removeTokenA.isNative || removeTokenB.isNative) {
         const token = removeTokenA.isNative ? removeTokenB.address : removeTokenA.address
-        console.log("调用 removeLiquidityETH...")
+        console.log("调用 removeLiquidityETHSupportingFeeOnTransferTokens...")
         console.log("参数:", {
           token,
           liquidity: liquidityToRemove.toString(),
@@ -632,7 +689,7 @@ export default function PoolPage() {
         removeLiquidityTx({
           address: ROUTER_ADDRESS,
           abi: ROUTER_ABI,
-          functionName: "removeLiquidityETH",
+          functionName: "removeLiquidityETHSupportingFeeOnTransferTokens",
           args: [token, liquidityToRemove, amountAMin, amountBMin, address, deadline],
           gas: BigInt(400000), // Explicitly set gas limit to prevent estimation failure
         })
@@ -659,6 +716,19 @@ export default function PoolPage() {
       console.error("移除流动性调用失败:", error)
       alert(`❌ 交易发起失败\n\n错误信息: ${error instanceof Error ? error.message : '未知错误'}\n\n请查看控制台日志获取详细诊断信息。`)
     }
+  }
+
+  const handleApproveLp = () => {
+    if (!removePairAddress || removePairAddress === '0x0000000000000000000000000000000000000000') return
+
+    const maxApproval = BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935")
+
+    approveToken({
+      address: removePairAddress as Address,
+      abi: ERC20_ABI,
+      functionName: "approve",
+      args: [ROUTER_ADDRESS, maxApproval],
+    })
   }
 
   return (
@@ -728,10 +798,10 @@ export default function PoolPage() {
               <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">Token A</span>
               {address && !poolTokenA.isNative && poolTokenABalance !== undefined && (
                 <button 
-                  onClick={() => setAmountA(formatEther(poolTokenABalance))}
+                  onClick={() => setAmountA(formatUnits(poolTokenABalance, getPoolTokenADecimals()))}
                   className="text-[10px] text-white font-bold hover:text-blue-300 transition-colors"
                 >
-                  余额: {parseFloat(formatEther(poolTokenABalance)).toFixed(4)}
+                  余额: {parseFloat(formatUnits(poolTokenABalance, getPoolTokenADecimals())).toFixed(4)}
                 </button>
               )}
               {address && !poolTokenA.isNative && poolTokenABalance === undefined && (
@@ -828,6 +898,7 @@ export default function PoolPage() {
                               symbol: fromSearchedToken.symbol,
                               address: fromSearchedToken.address,
                               isNative: false,
+                              decimals: fromSearchedToken.decimals,
                               logo: `https://tokens.pancakeswap.finance/images/${fromSearchedToken.address}.png`,
                             }
                             setPoolTokenA(newToken)
@@ -899,10 +970,10 @@ export default function PoolPage() {
               <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">Token B</span>
               {address && !poolTokenB.isNative && poolTokenBBalance !== undefined && (
                 <button 
-                  onClick={() => setAmountB(formatEther(poolTokenBBalance))}
+                  onClick={() => setAmountB(formatUnits(poolTokenBBalance, getPoolTokenBDecimals()))}
                   className="text-[10px] text-white font-bold hover:text-blue-300 transition-colors"
                 >
-                  余额: {parseFloat(formatEther(poolTokenBBalance)).toFixed(4)}
+                  余额: {parseFloat(formatUnits(poolTokenBBalance, getPoolTokenBDecimals())).toFixed(4)}
                 </button>
               )}
               {address && !poolTokenB.isNative && poolTokenBBalance === undefined && (
@@ -999,6 +1070,7 @@ export default function PoolPage() {
                               symbol: toSearchedToken.symbol,
                               address: toSearchedToken.address,
                               isNative: false,
+                              decimals: toSearchedToken.decimals,
                               logo: `https://tokens.pancakeswap.finance/images/${toSearchedToken.address}.png`,
                             }
                             setPoolTokenB(newToken)
@@ -1290,6 +1362,14 @@ export default function PoolPage() {
                   className="w-full py-3.5 bg-white/5 rounded-xl font-bold text-gray-500 cursor-not-allowed border border-white/5 text-sm"
                 >
                   无流动性可移除
+                </button>
+              ) : !hasLpApproval ? (
+                <button
+                  onClick={handleApproveLp}
+                  disabled={isApproving || liquidityToRemove <= 0n}
+                  className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl font-bold text-white transition-all disabled:opacity-50 shadow-xl shadow-blue-600/20 active:scale-[0.98] text-sm"
+                >
+                  {isApproving ? "授权中..." : "授权 LP Token"}
                 </button>
               ) : (
                 <button
