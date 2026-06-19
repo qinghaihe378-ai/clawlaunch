@@ -473,17 +473,25 @@ export default function SwapPage() {
   const handleApprove = () => {
     if (!address || !fromAmount) return
     
+    const decimals = getFromDecimals()
+    
+    // For approval, use max uint256 to avoid insufficient allowance issues
+    // This is safe because approve only allows the router to spend, not take
+    const maxApproval = BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935") // 2^256 - 1
+    
     console.log("授权代币:", {
       token: fromToken.symbol,
       address: fromToken.address,
-      decimals: getFromDecimals()
+      decimals: decimals,
+      approvalAmount: maxApproval.toString(),
+      formatted: decimals === 0 ? maxApproval.toString() : `${maxApproval / BigInt(10 ** decimals)} tokens`
     })
     
     approve({
       address: fromToken.address,
       abi: ERC20_ABI,
       functionName: "approve",
-      args: [ROUTER_ADDRESS, parseUnits("1000000", getFromDecimals())],
+      args: [ROUTER_ADDRESS, maxApproval],
     })
   }
 

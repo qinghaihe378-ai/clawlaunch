@@ -508,21 +508,29 @@ export default function PoolPage() {
   
   const handleApproveTokenA = () => {
     if (!address || !amountA) return
+    
+    // Use max uint256 for approval to avoid insufficient allowance
+    const maxApproval = BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935")
+    
     approveToken({
       address: poolTokenA.address,
       abi: ERC20_ABI,
       functionName: "approve",
-      args: [ROUTER_ADDRESS, parseEther("1000000")],
+      args: [ROUTER_ADDRESS, maxApproval],
     })
   }
   
   const handleApproveTokenB = () => {
     if (!address || !amountB) return
+    
+    // Use max uint256 for approval to avoid insufficient allowance
+    const maxApproval = BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935")
+    
     approveToken({
       address: poolTokenB.address,
       abi: ERC20_ABI,
       functionName: "approve",
-      args: [ROUTER_ADDRESS, parseEther("1000000")],
+      args: [ROUTER_ADDRESS, maxApproval],
     })
   }
   
