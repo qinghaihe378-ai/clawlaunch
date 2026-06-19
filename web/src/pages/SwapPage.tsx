@@ -167,15 +167,17 @@ export default function SwapPage() {
   const [fromSearchedToken, setFromSearchedToken] = useState<{symbol: string, name: string, address: Address} | null>(null)
   const [toSearchedToken, setToSearchedToken] = useState<{symbol: string, name: string, address: Address} | null>(null)
 
-  // Get token decimals - MUST fetch successfully for correct calculations
+  // Get token decimals with timeout protection
   const { data: fromDecimals, isLoading: isFromDecimalsLoading, error: fromDecimalsError } = useReadContract({
     address: isAddress(fromToken.address) && !fromToken.isNative ? fromToken.address as Address : undefined,
     abi: ERC20_ABI,
     functionName: "decimals",
     query: {
       enabled: !!fromToken.address && !fromToken.isNative && isAddress(fromToken.address),
-      retry: 3,
-      retryDelay: 500,
+      retry: 2,
+      retryDelay: 1000,
+      gcTime: 5 * 60 * 1000, // Cache for 5 minutes
+      staleTime: 2 * 60 * 1000, // Consider stale after 2 minutes
     }
   })
 
@@ -185,43 +187,43 @@ export default function SwapPage() {
     functionName: "decimals",
     query: {
       enabled: !!toToken.address && !toToken.isNative && isAddress(toToken.address),
-      retry: 3,
-      retryDelay: 500,
+      retry: 2,
+      retryDelay: 1000,
+      gcTime: 5 * 60 * 1000,
+      staleTime: 2 * 60 * 1000,
     }
   })
 
-  // PancakeSwap-style: get decimals with immediate fallback to 18
+  // PancakeSwap-style: get decimals with fallback to 18
   const getFromDecimals = (): number => {
     if (fromToken.isNative) return 18
-    // CRITICAL: Must have decimals loaded, otherwise default to 18 (most common)
+    // If we got decimals from chain, use it. Otherwise default to 18.
     return fromDecimals !== undefined ? Number(fromDecimals) : 18
   }
   
   const getToDecimals = (): number => {
     if (toToken.isNative) return 18
-    // CRITICAL: Must have decimals loaded, otherwise default to 18 (most common)
+    // If we got decimals from chain, use it. Otherwise default to 18.
     return toDecimals !== undefined ? Number(toDecimals) : 18
   }
   
-  // Check if we can proceed with swap (decimals must be loaded for non-native tokens)
+  // Check if we can proceed with swap
   const canSwap = () => {
-    if (fromToken.isNative && toToken.isNative) return true
-    if (fromToken.isNative) return toDecimals !== undefined
-    if (toToken.isNative) return fromDecimals !== undefined
-    return fromDecimals !== undefined && toDecimals !== undefined
+    // Always allow swap - use default decimals if needed
+    return true
   }
 
-  // Get quote from PancakeSwap - ONLY after decimals are loaded
+  // Get quote from PancakeSwap
   const { data: amountsOut, error: quoteError } = useReadContract({
     address: ROUTER_ADDRESS,
     abi: ROUTER_ABI,
     functionName: "getAmountsOut",
-    args: fromAmount && parseFloat(fromAmount) > 0 && canSwap() ? [
+    args: fromAmount && parseFloat(fromAmount) > 0 ? [
       parseUnits(fromAmount, getFromDecimals()),
       [fromToken.address, toToken.address]
     ] : undefined,
     query: {
-      enabled: !!fromAmount && parseFloat(fromAmount) > 0 && canSwap(),
+      enabled: !!fromAmount && parseFloat(fromAmount) > 0,
       retry: 1,
     }
   })
@@ -457,13 +459,6 @@ export default function SwapPage() {
   const handleApprove = () => {
     if (!address || !fromAmount) return
     
-    // Must have decimals loaded for non-native tokens
-    if (!fromToken.isNative && fromDecimals === undefined) {
-      console.error("代币精度未加载，无法授权")
-      alert(`正在获取 ${fromToken.symbol} 的精度信息，请稍后再试`)
-      return
-    }
-    
     console.log("授权代币:", {
       token: fromToken.symbol,
       address: fromToken.address,
@@ -481,18 +476,6 @@ export default function SwapPage() {
   const handleSwap = () => {
     if (!address || !fromAmount || !toAmount) {
       console.warn("缺少必要参数:", { address, fromAmount, toAmount })
-      return
-    }
-    
-    // CRITICAL: Must have decimals loaded before swap
-    if (!canSwap()) {
-      console.error("代币精度未加载，无法交易", {
-        fromToken: fromToken.symbol,
-        fromDecimals,
-        toToken: toToken.symbol,
-        toDecimals
-      })
-      alert(`正在获取代币精度信息，请稍后再试...\n\nFrom: ${fromToken.symbol} (精度: ${fromDecimals ?? '加载中...'})\nTo: ${toToken.symbol} (精度: ${toDecimals ?? '加载中...'})`)
       return
     }
     
@@ -1029,28 +1012,6 @@ export default function SwapPage() {
             </div>
 
           {/* Status Messages */}
-          {(isFromDecimalsLoading || isToDecimalsLoading) && !canSwap() && (
-            <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl text-center backdrop-blur-sm">
-              <span className="text-sm text-yellow-400 font-medium">⏳ 正在获取代币精度...</span>
-              <div className="text-xs text-gray-400 mt-1">
-                {!fromToken.isNative && `${fromToken.symbol}: ${fromDecimals !== undefined ? fromDecimals : '查询中...'}`}
-                {!toToken.isNative && ` | ${toToken.symbol}: ${toDecimals !== undefined ? toDecimals : '查询中...'}`}
-              </div>
-            </div>
-          )}
-          
-          {fromDecimalsError && (
-            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-center backdrop-blur-sm">
-              <span className="text-sm text-red-400 font-medium">❌ 无法获取 {fromToken.symbol} 的精度信息</span>
-            </div>
-          )}
-          
-          {toDecimalsError && (
-            <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-center backdrop-blur-sm">
-              <span className="text-sm text-red-400 font-medium">❌ 无法获取 {toToken.symbol} 的精度信息</span>
-            </div>
-          )}
-          
           {isApproving && (
             <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-center backdrop-blur-sm">
               <span className="text-sm text-blue-400 font-medium">⏳ 授权中...</span>
@@ -1127,13 +1088,6 @@ export default function SwapPage() {
               className="w-full py-3.5 bg-white/5 rounded-xl font-bold text-gray-500 cursor-not-allowed border border-white/5 text-sm"
             >
               输入金额
-            </button>
-          ) : !canSwap() ? (
-            <button
-              disabled
-              className="w-full py-3.5 bg-yellow-500/20 rounded-xl font-bold text-yellow-400 cursor-not-allowed border border-yellow-500/30 text-sm"
-            >
-              加载代币信息...
             </button>
           ) : !hasEnoughBalance ? (
             <button
