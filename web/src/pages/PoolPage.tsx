@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import { useAccount, useSwitchChain, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance } from "wagmi"
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt, useBalance } from "wagmi"
 import { parseUnits, formatUnits, formatEther, type Address, isAddress } from "viem"
 import { bsc } from "wagmi/chains"
 
@@ -159,6 +159,8 @@ const ERC20_ABI = [
 const ROUTER_ADDRESS = "0x10ED43C718714eb63d5aA57B78B54704E256024E" as Address
 const FACTORY_ADDRESS = "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73" as Address
 const WBNB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c" as Address
+const LIVE_REFETCH_MS = 4000
+const PRICE_REFETCH_MS = 8000
 
 // PancakeSwap V2 Factory ABI
 const FACTORY_ABI = [
@@ -209,9 +211,24 @@ const TOKENS: TokenOption[] = [
   { symbol: "ETH", address: "0x2170Ed0880ac9A755FD29B2688956BD959F933F8" as Address, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x2170Ed0880ac9A755FD29B2688956BD959F933F8.png" },
 ]
 
+function useDebouncedValue<T>(value: T, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedValue(value)
+    }, delay)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [delay, value])
+
+  return debouncedValue
+}
+
 export default function PoolPage() {
   const { address, chainId } = useAccount()
-  const { switchChain } = useSwitchChain()
   
   const [activeTab, setActiveTab] = useState<'add' | 'remove' | 'my'>('add')
   const [poolTokenA, setPoolTokenA] = useState(TOKENS[0])
@@ -352,9 +369,14 @@ export default function PoolPage() {
   const getPoolTokenBDecimals = () => (poolTokenB.isNative ? 18 : (poolTokenB.decimals ?? 18))
   const poolTokenADecimals = getPoolTokenADecimals()
   const poolTokenBDecimals = getPoolTokenBDecimals()
+  const debouncedAmountA = useDebouncedValue(amountA, 250)
   const parsedAmountA = useMemo(
     () => parseAmountValue(amountA, poolTokenADecimals),
     [amountA, poolTokenADecimals]
+  )
+  const debouncedParsedAmountA = useMemo(
+    () => parseAmountValue(debouncedAmountA, poolTokenADecimals),
+    [debouncedAmountA, poolTokenADecimals]
   )
   const parsedAmountB = useMemo(
     () => parseAmountValue(amountB, poolTokenBDecimals),
@@ -441,12 +463,15 @@ export default function PoolPage() {
     address: ROUTER_ADDRESS,
     abi: ROUTER_ABI,
     functionName: "getAmountsOut",
-    args: parsedAmountA !== null && parsedAmountA > 0n ? [
-      parsedAmountA,
+    args: debouncedParsedAmountA !== null && debouncedParsedAmountA > 0n ? [
+      debouncedParsedAmountA,
       [poolTokenA.address, poolTokenB.address]
     ] : undefined,
     query: {
-      enabled: parsedAmountA !== null && parsedAmountA > 0n,
+      enabled: activeTab === 'add' && poolTokenA.address !== poolTokenB.address && debouncedParsedAmountA !== null && debouncedParsedAmountA > 0n,
+      refetchInterval: PRICE_REFETCH_MS,
+      refetchOnWindowFocus: true,
+      staleTime: 15 * 1000,
     }
   })
 
@@ -458,6 +483,9 @@ export default function PoolPage() {
     args: address ? [address] : undefined,
     query: {
       enabled: !!address && !poolTokenA.isNative && isAddress(poolTokenA.address),
+      refetchInterval: LIVE_REFETCH_MS,
+      refetchOnWindowFocus: true,
+      staleTime: 15 * 1000,
     }
   })
 
@@ -466,6 +494,9 @@ export default function PoolPage() {
     address: address,
     query: {
       enabled: !!address && poolTokenA.isNative,
+      refetchInterval: LIVE_REFETCH_MS,
+      refetchOnWindowFocus: true,
+      staleTime: 15 * 1000,
     }
   })
 
@@ -477,6 +508,9 @@ export default function PoolPage() {
     args: address ? [address] : undefined,
     query: {
       enabled: !!address && !poolTokenB.isNative && isAddress(poolTokenB.address),
+      refetchInterval: LIVE_REFETCH_MS,
+      refetchOnWindowFocus: true,
+      staleTime: 15 * 1000,
     }
   })
 
@@ -485,6 +519,9 @@ export default function PoolPage() {
     address: address,
     query: {
       enabled: !!address && poolTokenB.isNative,
+      refetchInterval: LIVE_REFETCH_MS,
+      refetchOnWindowFocus: true,
+      staleTime: 15 * 1000,
     }
   })
 
@@ -526,7 +563,9 @@ export default function PoolPage() {
     args: address && amountA ? [address, ROUTER_ADDRESS] : undefined,
     query: {
       enabled: !!address && !poolTokenA.isNative && !!amountA && isAddress(poolTokenA.address),
-      refetchInterval: 3000,
+      refetchInterval: LIVE_REFETCH_MS,
+      refetchOnWindowFocus: true,
+      staleTime: 15 * 1000,
     }
   })
   
@@ -537,7 +576,9 @@ export default function PoolPage() {
     args: address && amountB ? [address, ROUTER_ADDRESS] : undefined,
     query: {
       enabled: !!address && !poolTokenB.isNative && !!amountB && isAddress(poolTokenB.address),
-      refetchInterval: 3000,
+      refetchInterval: LIVE_REFETCH_MS,
+      refetchOnWindowFocus: true,
+      staleTime: 15 * 1000,
     }
   })
   
@@ -555,7 +596,10 @@ export default function PoolPage() {
   
   // Remove Liquidity: Get pair and LP balance
   // Note: getPair requires tokens to be sorted by address
-  const sortedTokens = [removeTokenA.address, removeTokenB.address].sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : 1)
+  const sortedTokens = useMemo(
+    () => [removeTokenA.address, removeTokenB.address].sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : 1),
+    [removeTokenA.address, removeTokenB.address]
+  )
   
   const { data: removePairAddress } = useReadContract({
     address: FACTORY_ADDRESS,
@@ -563,7 +607,10 @@ export default function PoolPage() {
     functionName: "getPair",
     args: [sortedTokens[0] as Address, sortedTokens[1] as Address],
     query: {
-      enabled: true,
+      enabled: activeTab !== 'add' && removeTokenA.address !== removeTokenB.address,
+      refetchInterval: PRICE_REFETCH_MS,
+      refetchOnWindowFocus: true,
+      staleTime: 30 * 1000,
     }
   })
   
@@ -574,6 +621,9 @@ export default function PoolPage() {
     args: address ? [address] : undefined,
     query: {
       enabled: !!address && !!removePairAddress && removePairAddress !== '0x0000000000000000000000000000000000000000',
+      refetchInterval: LIVE_REFETCH_MS,
+      refetchOnWindowFocus: true,
+      staleTime: 15 * 1000,
     }
   })
   
@@ -583,6 +633,9 @@ export default function PoolPage() {
     functionName: "totalSupply",
     query: {
       enabled: !!removePairAddress && removePairAddress !== '0x0000000000000000000000000000000000000000',
+      refetchInterval: LIVE_REFETCH_MS,
+      refetchOnWindowFocus: true,
+      staleTime: 15 * 1000,
     }
   })
 
@@ -593,7 +646,9 @@ export default function PoolPage() {
     args: address ? [address, ROUTER_ADDRESS] : undefined,
     query: {
       enabled: !!address && !!removePairAddress && removePairAddress !== '0x0000000000000000000000000000000000000000',
-      refetchInterval: 3000,
+      refetchInterval: LIVE_REFETCH_MS,
+      refetchOnWindowFocus: true,
+      staleTime: 15 * 1000,
     }
   })
   
@@ -745,16 +800,6 @@ export default function PoolPage() {
       return
     }
     
-    console.log("=== 移除流动性诊断信息 ===")
-    console.log("1. 用户地址:", address)
-    console.log("2. Token A:", removeTokenA.symbol, removeTokenA.address, "isNative:", removeTokenA.isNative)
-    console.log("3. Token B:", removeTokenB.symbol, removeTokenB.address, "isNative:", removeTokenB.isNative)
-    console.log("4. Pair 地址:", removePairAddress)
-    console.log("5. LP 余额:", lpBalance?.toString() || "0")
-    console.log("6. LP Total Supply:", lpTotalSupply?.toString() || "0")
-    console.log("7. hasLiquidity:", hasLiquidity)
-    console.log("8. removePercentage:", removePercentage)
-    
     if (!removePairAddress || removePairAddress === '0x0000000000000000000000000000000000000000') {
       alert(`❌ 错误：找不到交易对合约\n\n可能原因：\n1. 这两个代币之间没有创建流动性池\n2. 代币地址输入错误\n\nToken A: ${removeTokenA.address}\nToken B: ${removeTokenB.address}`)
       return
@@ -766,37 +811,14 @@ export default function PoolPage() {
     }
     
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200)
-    
-    console.log("9. 要移除的流动性:", liquidityToRemove.toString())
-    console.log("10. Deadline:", deadline.toString())
-    
+
     // 0 精度代币在小额撤池子时可能拿不到完整 1 个代币，最小值设为 1 会直接 revert。
     const amountAMin = 0n
     const amountBMin = 0n
-    
-    console.log("正在尝试移除流动性...", {
-      tokenA: `${removeTokenA.symbol} (${removeTokenA.address})`,
-      tokenB: `${removeTokenB.symbol} (${removeTokenB.address})`,
-      pairAddress: removePairAddress,
-      lpBalance: lpBalance.toString(),
-      liquidityToRemove: liquidityToRemove.toString(),
-      percentage: removePercentage,
-      isNative: removeTokenA.isNative || removeTokenB.isNative,
-      gasLimit: removeTokenA.isNative || removeTokenB.isNative ? 400000 : 350000
-    })
 
     try {
       if (removeTokenA.isNative || removeTokenB.isNative) {
         const token = removeTokenA.isNative ? removeTokenB.address : removeTokenA.address
-        console.log("调用 removeLiquidityETHSupportingFeeOnTransferTokens...")
-        console.log("参数:", {
-          token,
-          liquidity: liquidityToRemove.toString(),
-          amountAMin: amountAMin.toString(),
-          amountBMin: amountBMin.toString(),
-          to: address,
-          deadline: deadline.toString()
-        })
         removeLiquidityTx({
           address: ROUTER_ADDRESS,
           abi: ROUTER_ABI,
@@ -805,16 +827,6 @@ export default function PoolPage() {
           gas: BigInt(400000), // Explicitly set gas limit to prevent estimation failure
         })
       } else {
-        console.log("调用 removeLiquidity...")
-        console.log("参数:", {
-          tokenA: removeTokenA.address,
-          tokenB: removeTokenB.address,
-          liquidity: liquidityToRemove.toString(),
-          amountAMin: amountAMin.toString(),
-          amountBMin: amountBMin.toString(),
-          to: address,
-          deadline: deadline.toString()
-        })
         removeLiquidityTx({
           address: ROUTER_ADDRESS,
           abi: ROUTER_ABI,

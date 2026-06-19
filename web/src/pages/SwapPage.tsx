@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import { useAccount, useSwitchChain, useWriteContract, useWaitForTransactionReceipt, useReadContract, useBalance, usePublicClient } from "wagmi"
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContract, useBalance, usePublicClient } from "wagmi"
 import { formatEther, parseUnits, formatUnits, type Address, isAddress } from "viem"
 import { bsc } from "wagmi/chains"
 
@@ -149,6 +149,8 @@ const ROUTER_ADDRESS = "0x10ED43C718714eb63d5aA57B78B54704E256024E" as Address
 const FACTORY_ADDRESS = "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73" as Address
 const WBNB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c" as Address
 const USDC = "0x8AC76a51cc950d9822D68b83Fe1Ad97B32Cd580d" as Address
+const LIVE_REFETCH_MS = 4000
+const PRICE_REFETCH_MS = 8000
 
 // PancakeSwap V2 Factory ABI
 const FACTORY_ABI = [
@@ -193,6 +195,22 @@ type RouteQuote = {
   amountsOut: bigint[]
 }
 
+function useDebouncedValue<T>(value: T, delay: number) {
+  const [debouncedValue, setDebouncedValue] = useState(value)
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedValue(value)
+    }, delay)
+
+    return () => {
+      window.clearTimeout(timer)
+    }
+  }, [delay, value])
+
+  return debouncedValue
+}
+
 const TOKENS: TokenOption[] = [
   { symbol: "BNB", address: WBNB, isNative: true, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c.png" },
   { symbol: "USDT", address: "0x55d398326f99059fF775485246999027B3197955" as Address, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x55d398326f99059fF775485246999027B3197955.png" },
@@ -203,7 +221,6 @@ const TOKENS: TokenOption[] = [
 
 export default function SwapPage() {
   const { address, chainId } = useAccount()
-  const { switchChain } = useSwitchChain()
   const publicClient = usePublicClient({ chainId: bsc.id })
   
   const [fromToken, setFromToken] = useState(TOKENS[0])
@@ -242,7 +259,7 @@ export default function SwapPage() {
   }
 
   // Get token decimals with timeout protection
-  const { data: fromDecimals, isLoading: isFromDecimalsLoading, error: fromDecimalsError } = useReadContract({
+  const { data: fromDecimals, error: fromDecimalsError } = useReadContract({
     address: isAddress(fromToken.address) && !fromToken.isNative ? fromToken.address as Address : undefined,
     abi: ERC20_ABI,
     functionName: "decimals",
@@ -262,7 +279,7 @@ export default function SwapPage() {
     }
   }, [fromDecimalsError, fromToken.symbol])
 
-  const { data: toDecimals, isLoading: isToDecimalsLoading, error: toDecimalsError } = useReadContract({
+  const { data: toDecimals, error: toDecimalsError } = useReadContract({
     address: isAddress(toToken.address) && !toToken.isNative ? toToken.address as Address : undefined,
     abi: ERC20_ABI,
     functionName: "decimals",
@@ -286,39 +303,27 @@ export default function SwapPage() {
   const getFromDecimals = (): number => {
     if (fromToken.isNative) return 18
     if (fromToken.decimals !== undefined) return fromToken.decimals
-    // If we got decimals from chain, use it. Otherwise default to 18.
-    const decimals = fromDecimals !== undefined ? Number(fromDecimals) : 18
-    console.log(`[DEBUG] From Token ${fromToken.symbol}:`, {
-      address: fromToken.address,
-      queriedDecimals: fromDecimals,
-      usedDecimals: decimals,
-      isDefault: fromDecimals === undefined
-    })
-    return decimals
+    return fromDecimals !== undefined ? Number(fromDecimals) : 18
   }
   
   const getToDecimals = (): number => {
     if (toToken.isNative) return 18
     if (toToken.decimals !== undefined) return toToken.decimals
-    // If we got decimals from chain, use it. Otherwise default to 18.
-    const decimals = toDecimals !== undefined ? Number(toDecimals) : 18
-    console.log(`[DEBUG] To Token ${toToken.symbol}:`, {
-      address: toToken.address,
-      queriedDecimals: toDecimals,
-      usedDecimals: decimals,
-      isDefault: toDecimals === undefined
-    })
-    return decimals
+    return toDecimals !== undefined ? Number(toDecimals) : 18
   }
 
   const fromTokenDecimals = getFromDecimals()
   const toTokenDecimals = getToDecimals()
+  const debouncedFromAmount = useDebouncedValue(fromAmount, 250)
   const parsedFromAmount = useMemo(
     () => parseAmountValue(fromAmount, fromTokenDecimals),
     [fromAmount, fromTokenDecimals]
   )
+  const debouncedParsedFromAmount = useMemo(
+    () => parseAmountValue(debouncedFromAmount, fromTokenDecimals),
+    [debouncedFromAmount, fromTokenDecimals]
+  )
   const [routeQuote, setRouteQuote] = useState<RouteQuote | null>(null)
-  const [routeError, setRouteError] = useState<string | null>(null)
   const [isRouteLoading, setIsRouteLoading] = useState(false)
 
   const candidatePaths = useMemo(() => {
@@ -359,18 +364,11 @@ export default function SwapPage() {
   const amountsOut = routeQuote?.amountsOut ?? null
   const selectedPath = routeQuote?.path ?? null
   const selectedOutput = amountsOut && amountsOut.length > 0 ? amountsOut[amountsOut.length - 1] : 0n
-  
-  // Check if we can proceed with swap
-  const canSwap = () => {
-    // Always allow swap - use default decimals if needed
-    return true
-  }
 
   // Get best quote from PancakeSwap across common routing paths
   useEffect(() => {
-    if (!publicClient || parsedFromAmount === null || parsedFromAmount <= 0n || fromToken.address === toToken.address) {
+    if (!publicClient || debouncedParsedFromAmount === null || debouncedParsedFromAmount <= 0n || fromToken.address === toToken.address) {
       setRouteQuote(null)
-      setRouteError(null)
       setIsRouteLoading(false)
       return
     }
@@ -380,36 +378,32 @@ export default function SwapPage() {
     const fetchBestRoute = async () => {
       setIsRouteLoading(true)
       setRouteQuote(null)
-      setRouteError(null)
 
-      const results = await Promise.all(
-        candidatePaths.map(async (path) => {
-          try {
-            const result = await publicClient.readContract({
-              address: ROUTER_ADDRESS,
-              abi: ROUTER_ABI,
-              functionName: "getAmountsOut",
-              args: [parsedFromAmount, path],
-            })
-
-            const amounts = Array.from(result as readonly bigint[])
-            const output = amounts[amounts.length - 1] ?? 0n
-            if (output <= 0n) return null
-
-            return {
-              path,
-              amountsOut: amounts,
-              output,
-            }
-          } catch {
-            return null
-          }
-        })
-      )
+      const results = await publicClient.multicall({
+        contracts: candidatePaths.map((path) => ({
+          address: ROUTER_ADDRESS,
+          abi: ROUTER_ABI,
+          functionName: "getAmountsOut",
+          args: [debouncedParsedFromAmount, path],
+        })),
+        allowFailure: true,
+      })
 
       if (cancelled) return
 
-      const validRoutes = results.filter((item): item is RouteQuote & { output: bigint } => item !== null)
+      const validRoutes = results.flatMap((result, index) => {
+        if (result.status !== "success") return []
+
+        const amounts = Array.from(result.result as readonly bigint[])
+        const output = amounts[amounts.length - 1] ?? 0n
+        if (output <= 0n) return []
+
+        return [{
+          path: candidatePaths[index],
+          amountsOut: amounts,
+          output,
+        }]
+      })
       validRoutes.sort((a, b) => {
         if (a.output === b.output) return a.path.length - b.path.length
         return a.output > b.output ? -1 : 1
@@ -417,7 +411,6 @@ export default function SwapPage() {
 
       if (validRoutes.length === 0) {
         setRouteQuote(null)
-        setRouteError("未找到可用路由")
         setIsRouteLoading(false)
         return
       }
@@ -426,7 +419,6 @@ export default function SwapPage() {
         path: validRoutes[0].path,
         amountsOut: validRoutes[0].amountsOut,
       })
-      setRouteError(null)
       setIsRouteLoading(false)
     }
 
@@ -434,29 +426,19 @@ export default function SwapPage() {
       if (cancelled) return
       console.warn(`[SwapPage] Failed to get quote for ${fromToken.symbol} → ${toToken.symbol}:`, error)
       setRouteQuote(null)
-      setRouteError("获取路由报价失败")
       setIsRouteLoading(false)
     })
 
     return () => {
       cancelled = true
     }
-  }, [candidatePaths, fromToken.address, fromToken.symbol, parsedFromAmount, publicClient, toToken.address, toToken.symbol])
-
-  useEffect(() => {
-    if (routeError) {
-      console.warn(`[SwapPage] Route quote unavailable for ${fromToken.symbol} → ${toToken.symbol}: ${routeError}`)
-    }
-
-    if (!isRouteLoading && parsedFromAmount !== null && parsedFromAmount > 0n && selectedOutput === 0n) {
-      console.error(`❌ [SwapPage] CRITICAL: No route produces output for ${fromAmount} ${fromToken.symbol}`)
-      console.error(`   This means the token amount is too small relative to pool reserves`)
-      console.error(`   The trade will fail with "Pancake: K" error regardless of slippage`)
-    }
-  }, [routeError, isRouteLoading, parsedFromAmount, selectedOutput, fromAmount, fromToken.symbol, toToken.symbol])
+  }, [candidatePaths, debouncedParsedFromAmount, fromToken.address, fromToken.symbol, publicClient, toToken.address, toToken.symbol])
 
   // Get pair address for liquidity info (sort addresses alphabetically)
-  const sortedPairAddresses = [fromToken.address, toToken.address].sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : 1)
+  const sortedPairAddresses = useMemo(
+    () => [fromToken.address, toToken.address].sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : 1),
+    [fromToken.address, toToken.address]
+  )
   
   const { data: pairAddress } = useReadContract({
     address: FACTORY_ADDRESS,
@@ -464,7 +446,10 @@ export default function SwapPage() {
     functionName: "getPair",
     args: [sortedPairAddresses[0] as Address, sortedPairAddresses[1] as Address],
     query: {
-      enabled: true,
+      enabled: fromToken.address !== toToken.address && parsedFromAmount !== null && parsedFromAmount > 0n,
+      refetchInterval: PRICE_REFETCH_MS,
+      refetchOnWindowFocus: true,
+      staleTime: 30 * 1000,
     }
   })
 
@@ -475,6 +460,9 @@ export default function SwapPage() {
     functionName: "getReserves",
     query: {
       enabled: !!pairAddress && pairAddress !== '0x0000000000000000000000000000000000000000',
+      refetchInterval: PRICE_REFETCH_MS,
+      refetchOnWindowFocus: true,
+      staleTime: 30 * 1000,
     }
   })
 
@@ -486,7 +474,9 @@ export default function SwapPage() {
     args: address && fromAmount ? [address, ROUTER_ADDRESS] : undefined,
     query: {
       enabled: !!address && !fromToken.isNative && !!fromAmount && isAddress(fromToken.address),
-      refetchInterval: 3000,
+      refetchInterval: LIVE_REFETCH_MS,
+      refetchOnWindowFocus: true,
+      staleTime: 15 * 1000,
     }
   })
 
@@ -498,6 +488,9 @@ export default function SwapPage() {
     args: address ? [address] : undefined,
     query: {
       enabled: !!address && !fromToken.isNative && isAddress(fromToken.address),
+      refetchInterval: LIVE_REFETCH_MS,
+      refetchOnWindowFocus: true,
+      staleTime: 15 * 1000,
     }
   })
 
@@ -506,6 +499,9 @@ export default function SwapPage() {
     address: address,
     query: {
       enabled: !!address && fromToken.isNative,
+      refetchInterval: LIVE_REFETCH_MS,
+      refetchOnWindowFocus: true,
+      staleTime: 15 * 1000,
     }
   })
 
@@ -520,6 +516,9 @@ export default function SwapPage() {
     args: address ? [address] : undefined,
     query: {
       enabled: !!address && !toToken.isNative && isAddress(toToken.address),
+      refetchInterval: LIVE_REFETCH_MS,
+      refetchOnWindowFocus: true,
+      staleTime: 15 * 1000,
     }
   })
 
@@ -528,12 +527,13 @@ export default function SwapPage() {
     address: address,
     query: {
       enabled: !!address && toToken.isNative,
+      refetchInterval: LIVE_REFETCH_MS,
+      refetchOnWindowFocus: true,
+      staleTime: 15 * 1000,
     }
   })
 
   // Use the appropriate balance for To token
-  const displayToBalance = toToken.isNative ? toBnbBalance?.value : toBalance
-
   // Update toAmount when quote changes
   useEffect(() => {
     if (selectedOutput > 0n) {
@@ -552,12 +552,12 @@ export default function SwapPage() {
   const hasZeroOutput = parsedFromAmount !== null && parsedFromAmount > 0n && !isRouteLoading && selectedOutput === 0n
 
   // Calculate liquidity and price
-  const liquidityInfo = (() => {
+  const liquidityInfo = useMemo(() => {
     if (!reserves || reserves.length < 2) return null
     
     try {
-      const reserve0 = parseFloat(formatUnits(reserves[0], getFromDecimals()))
-      const reserve1 = parseFloat(formatUnits(reserves[1], getToDecimals()))
+      const reserve0 = parseFloat(formatUnits(reserves[0], fromTokenDecimals))
+      const reserve1 = parseFloat(formatUnits(reserves[1], toTokenDecimals))
       
       // Calculate price (reserve1 / reserve0)
       const price = reserve0 > 0 ? reserve1 / reserve0 : 0
@@ -575,7 +575,7 @@ export default function SwapPage() {
       console.error("流动性计算失败:", e)
       return null
     }
-  })()
+  }, [reserves, fromTokenDecimals, toTokenDecimals])
 
   // Check approval status
   useEffect(() => {
@@ -727,21 +727,11 @@ export default function SwapPage() {
 
   const handleApprove = () => {
     if (!address || !fromAmount) return
-    
-    const decimals = getFromDecimals()
-    
+
     // For approval, use max uint256 to avoid insufficient allowance issues
     // This is safe because approve only allows the router to spend, not take
     const maxApproval = BigInt("115792089237316195423570985008687907853269984665640564039457584007913129639935") // 2^256 - 1
-    
-    console.log("授权代币:", {
-      token: fromToken.symbol,
-      address: fromToken.address,
-      decimals: decimals,
-      approvalAmount: maxApproval.toString(),
-      formatted: decimals === 0 ? maxApproval.toString() : `${maxApproval / BigInt(10 ** decimals)} tokens`
-    })
-    
+
     approve({
       address: fromToken.address,
       abi: ERC20_ABI,
@@ -752,7 +742,6 @@ export default function SwapPage() {
 
   const handleSwap = () => {
     if (!address || !fromAmount || !toAmount) {
-      console.warn("缺少必要参数:", { address, fromAmount, toAmount })
       return
     }
     
@@ -770,38 +759,12 @@ export default function SwapPage() {
       alert(fromDec === 0 ? `该代币是 0 精度，只能输入整数数量` : `输入金额格式不正确`)
       return
     }
-    
-    console.log("准备执行 Swap:", {
-      fromToken: fromToken.symbol,
-      toToken: toToken.symbol,
-      fromDecimals: fromDec,
-      toDecimals: toDec,
-      fromAmount,
-      toAmount,
-      slippage
-    })
-    
+
     // Additional checks for selling tokens
     if (!fromToken.isNative) {
-      console.log("[卖出检查] 代币信息:", {
-        symbol: fromToken.symbol,
-        address: fromToken.address,
-        decimals: fromDec,
-        amountIn: amountInValue.toString(),
-        displayBalance: displayBalance?.toString(),
-        formattedBalance: formattedBalance
-      })
-      
       // Check allowance
       if (allowance !== undefined) {
-        console.log("[卖出检查] 授权状态:", {
-          allowance: allowance.toString(),
-          needed: amountInValue.toString(),
-          hasEnough: allowance >= amountInValue
-        })
-        
         if (allowance < amountInValue) {
-          console.error("[卖出检查] ❌ 授权额度不足!")
           alert(`授权额度不足！\n\n需要: ${fromAmount} ${fromToken.symbol}\n已授权: ${formatUnits(allowance, fromDec)} ${fromToken.symbol}\n\n请先点击"授权"按钮`)
           return
         }
@@ -809,14 +772,7 @@ export default function SwapPage() {
       
       // Check balance
       if (balance !== undefined) {
-        console.log("[卖出检查] 余额状态:", {
-          balance: balance.toString(),
-          needed: amountInValue.toString(),
-          hasEnough: balance >= amountInValue
-        })
-        
         if (balance < amountInValue) {
-          console.error("[卖出检查] ❌ 余额不足!")
           alert(`余额不足！\n\n需要: ${fromAmount} ${fromToken.symbol}\n当前余额: ${formattedBalance} ${fromToken.symbol}`)
           return
         }
@@ -834,45 +790,18 @@ export default function SwapPage() {
         return
       }
       const amountsOutValue = selectedOutput > 0n ? selectedOutput : (fallbackAmountOut ?? 0n)
-      
-      console.log("[DEBUG] 滑点计算:", {
-        amountsOut: amountsOut?.map(a => a.toString()),
-        amountsOutValue: amountsOutValue.toString(),
-        toAmount,
-        toDec,
-        fallbackUsed: !amountsOut || amountsOut.length <= 1
-      })
-      
+
       const slippageBps = BigInt(Math.floor(slippage * 100)) // Convert to basis points (e.g., 0.5% = 50 bps)
       const shouldUseZeroMinOut = !fromToken.isNative && fromDec === 0
       const amountOutMin = shouldUseZeroMinOut
         ? 0n
         : amountsOutValue * (BigInt(10000) - slippageBps) / BigInt(10000)
-      
-      console.log("[DEBUG] 最终参数:", {
-        slippage: `${slippage}%`,
-        slippageBps: slippageBps.toString(),
-        zeroMinOut: shouldUseZeroMinOut,
-        amountOutMin: amountOutMin.toString(),
-        formatted: formatUnits(amountOutMin, toDec)
-      })
-      
+
       // IMPORTANT: Path must be in the correct order for the swap direction
       // For sell (token -> BNB): [tokenAddress, WBNB]
       // For buy (BNB -> token): [WBNB, tokenAddress]
       const path = selectedPath
-      
-      console.log("交易参数:", {
-        fromToken: fromToken.symbol,
-        toToken: toToken.symbol,
-        path: path,
-        amountIn: amountIn.toString(),
-        amountOutMin: amountOutMin.toString(),
-        deadline: deadline.toString(),
-        slippageBps: slippageBps.toString()
-      })
       if (fromToken.isNative) {
-        console.log("执行 swapExactETHForTokensSupportingFeeOnTransferTokens")
         swap({
           address: ROUTER_ADDRESS,
           abi: ROUTER_ABI,
@@ -882,7 +811,6 @@ export default function SwapPage() {
           gas: BigInt(600000), // Higher gas for tax tokens
         })
       } else if (toToken.isNative) {
-        console.log("执行 swapExactTokensForETHSupportingFeeOnTransferTokens")
         swap({
           address: ROUTER_ADDRESS,
           abi: ROUTER_ABI,
@@ -891,7 +819,6 @@ export default function SwapPage() {
           gas: BigInt(800000), // Much higher gas for selling tax tokens
         })
       } else {
-        console.log("执行 swapExactTokensForTokensSupportingFeeOnTransferTokens")
         swap({
           address: ROUTER_ADDRESS,
           abi: ROUTER_ABI,
