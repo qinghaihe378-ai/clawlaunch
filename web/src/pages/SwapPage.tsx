@@ -167,40 +167,62 @@ export default function SwapPage() {
   const [fromSearchedToken, setFromSearchedToken] = useState<{symbol: string, name: string, address: Address} | null>(null)
   const [toSearchedToken, setToSearchedToken] = useState<{symbol: string, name: string, address: Address} | null>(null)
 
-  // Get token decimals dynamically
-  const { data: fromDecimals } = useReadContract({
+  // Get token decimals dynamically with timeout protection
+  const { data: fromDecimals, isLoading: isFromDecimalsLoading } = useReadContract({
     address: isAddress(fromToken.address) && !fromToken.isNative ? fromToken.address as Address : undefined,
     abi: ERC20_ABI,
     functionName: "decimals",
     query: {
       enabled: !!fromToken.address && !fromToken.isNative && isAddress(fromToken.address),
+      retry: 2,
+      gcTime: 5 * 60 * 1000, // Cache for 5 minutes
     }
   })
 
-  const { data: toDecimals } = useReadContract({
+  const { data: toDecimals, isLoading: isToDecimalsLoading } = useReadContract({
     address: isAddress(toToken.address) && !toToken.isNative ? toToken.address as Address : undefined,
     abi: ERC20_ABI,
     functionName: "decimals",
     query: {
       enabled: !!toToken.address && !toToken.isNative && isAddress(toToken.address),
+      retry: 2,
+      gcTime: 5 * 60 * 1000, // Cache for 5 minutes
     }
   })
 
   // Helper function to get effective decimals (default to 18 for native or if not loaded)
-  const getFromDecimals = () => fromToken.isNative ? 18 : (fromDecimals !== undefined ? fromDecimals : 18)
-  const getToDecimals = () => toToken.isNative ? 18 : (toDecimals !== undefined ? toDecimals : 18)
+  const getFromDecimals = () => {
+    if (fromToken.isNative) return 18
+    if (fromDecimals !== undefined) return fromDecimals
+    // For custom tokens, default to 18 but warn
+    if (!TOKENS.find(t => t.address === fromToken.address)) {
+      console.warn(`Custom token ${fromToken.symbol} decimals not loaded, using default 18`)
+    }
+    return 18
+  }
+  
+  const getToDecimals = () => {
+    if (toToken.isNative) return 18
+    if (toDecimals !== undefined) return toDecimals
+    // For custom tokens, default to 18 but warn
+    if (!TOKENS.find(t => t.address === toToken.address)) {
+      console.warn(`Custom token ${toToken.symbol} decimals not loaded, using default 18`)
+    }
+    return 18
+  }
 
   // Get quote from PancakeSwap
-  const { data: amountsOut } = useReadContract({
+  const { data: amountsOut, error: quoteError } = useReadContract({
     address: ROUTER_ADDRESS,
     abi: ROUTER_ABI,
     functionName: "getAmountsOut",
-    args: fromAmount && parseFloat(fromAmount) > 0 && (!fromToken.isNative ? fromDecimals !== undefined : true) && (!toToken.isNative ? toDecimals !== undefined : true) ? [
+    args: fromAmount && parseFloat(fromAmount) > 0 ? [
       parseUnits(fromAmount, getFromDecimals()),
       [fromToken.address, toToken.address]
     ] : undefined,
     query: {
-      enabled: !!fromAmount && parseFloat(fromAmount) > 0 && (!fromToken.isNative ? fromDecimals !== undefined : true) && (!toToken.isNative ? toDecimals !== undefined : true),
+      enabled: !!fromAmount && parseFloat(fromAmount) > 0,
+      retry: 1,
     }
   })
 
@@ -286,32 +308,41 @@ export default function SwapPage() {
   // Update toAmount when quote changes
   useEffect(() => {
     if (amountsOut && amountsOut.length > 1) {
-      const formatted = formatUnits(amountsOut[1], getToDecimals())
-      setToAmount(parseFloat(formatted).toFixed(6))
+      try {
+        const formatted = formatUnits(amountsOut[1], getToDecimals())
+        setToAmount(parseFloat(formatted).toFixed(6))
+      } catch (e) {
+        console.error("格式化报价失败:", e)
+        setToAmount("")
+      }
     } else {
       setToAmount("")
     }
-  }, [amountsOut, toDecimals])
+  }, [amountsOut])
 
   // Calculate liquidity and price
   const liquidityInfo = (() => {
     if (!reserves || reserves.length < 2) return null
-    if (fromDecimals === undefined || toDecimals === undefined) return null
     
-    const reserve0 = parseFloat(formatUnits(reserves[0], fromDecimals))
-    const reserve1 = parseFloat(formatUnits(reserves[1], toDecimals))
-    
-    // Calculate price (reserve1 / reserve0)
-    const price = reserve0 > 0 ? reserve1 / reserve0 : 0
-    
-    // Calculate total liquidity in USD (simplified)
-    const totalLiquidity = Math.sqrt(reserve0 * reserve1)
-    
-    return {
-      price,
-      liquidity: totalLiquidity,
-      reserve0,
-      reserve1
+    try {
+      const reserve0 = parseFloat(formatUnits(reserves[0], getFromDecimals()))
+      const reserve1 = parseFloat(formatUnits(reserves[1], getToDecimals()))
+      
+      // Calculate price (reserve1 / reserve0)
+      const price = reserve0 > 0 ? reserve1 / reserve0 : 0
+      
+      // Calculate total liquidity in USD (simplified)
+      const totalLiquidity = Math.sqrt(reserve0 * reserve1)
+      
+      return {
+        price,
+        liquidity: totalLiquidity,
+        reserve0,
+        reserve1
+      }
+    } catch (e) {
+      console.error("流动性计算失败:", e)
+      return null
     }
   })()
 
@@ -319,14 +350,19 @@ export default function SwapPage() {
   useEffect(() => {
     if (fromToken.isNative) {
       setIsApproved(true)
-    } else if (allowance && fromAmount && fromDecimals !== undefined) {
-      const needed = parseUnits(fromAmount, fromDecimals)
-      setIsApproved(allowance >= needed)
+    } else if (allowance && fromAmount) {
+      try {
+        const needed = parseUnits(fromAmount, getFromDecimals())
+        setIsApproved(allowance >= needed)
+      } catch (e) {
+        console.error("授权检查失败:", e)
+        setIsApproved(false)
+      }
     } else {
       // Reset to false when token changes or no amount entered
       setIsApproved(false)
     }
-  }, [allowance, fromAmount, fromToken.address, fromToken.isNative, fromDecimals])
+  }, [allowance, fromAmount, fromToken.address, fromToken.isNative])
 
   // Search token by address for FROM
   const { data: fromTokenSymbol } = useReadContract({
@@ -420,10 +456,12 @@ export default function SwapPage() {
 
   const handleApprove = () => {
     if (!address || !fromAmount) return
-    if (!fromToken.isNative && fromDecimals === undefined) {
-      console.warn("等待代币精度加载...")
-      return
-    }
+    
+    console.log("授权代币:", {
+      token: fromToken.symbol,
+      address: fromToken.address,
+      decimals: getFromDecimals()
+    })
     
     approve({
       address: fromToken.address,
@@ -439,18 +477,6 @@ export default function SwapPage() {
       return
     }
     
-    // Check if decimals are loaded for non-native tokens
-    if (!fromToken.isNative && fromDecimals === undefined) {
-      console.warn("等待 From Token 精度加载...")
-      alert("正在加载代币信息，请稍后再试")
-      return
-    }
-    if (!toToken.isNative && toDecimals === undefined) {
-      console.warn("等待 To Token 精度加载...")
-      alert("正在加载代币信息，请稍后再试")
-      return
-    }
-    
     // Check if pair exists
     if (!pairAddress || pairAddress === '0x0000000000000000000000000000000000000000') {
       console.error("交易对不存在:", { from: fromToken.address, to: toToken.address })
@@ -458,23 +484,32 @@ export default function SwapPage() {
       return
     }
     
-    const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200)
-    const amountIn = parseUnits(fromAmount, getFromDecimals())
-    const amountOutMin = parseUnits((parseFloat(toAmount) * (1 - slippage / 100)).toString(), getToDecimals())
-    const path = [fromToken.address, toToken.address]
+    const fromDec = getFromDecimals()
+    const toDec = getToDecimals()
     
     console.log("准备执行 Swap:", {
       fromToken: fromToken.symbol,
       toToken: toToken.symbol,
-      amountIn: amountIn.toString(),
-      amountOutMin: amountOutMin.toString(),
-      fromDecimals: getFromDecimals(),
-      toDecimals: getToDecimals(),
-      path,
-      pairAddress
+      fromDecimals: fromDec,
+      toDecimals: toDec,
+      fromAmount,
+      toAmount,
+      slippage
     })
-
+    
     try {
+      const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200)
+      const amountIn = parseUnits(fromAmount, fromDec)
+      const amountOutMin = parseUnits((parseFloat(toAmount) * (1 - slippage / 100)).toString(), toDec)
+      const path = [fromToken.address, toToken.address]
+      
+      console.log("交易参数:", {
+        amountIn: amountIn.toString(),
+        amountOutMin: amountOutMin.toString(),
+        path,
+        deadline: deadline.toString()
+      })
+      
       if (fromToken.isNative) {
         console.log("执行 swapExactETHForTokens")
         swap({
@@ -503,7 +538,7 @@ export default function SwapPage() {
       }
     } catch (error) {
       console.error("Swap 调用失败:", error)
-      alert(`交易发起失败: ${error instanceof Error ? error.message : '未知错误'}`)
+      alert(`交易发起失败: ${error instanceof Error ? error.message : '未知错误'}\n\n请查看控制台日志获取详细信息。`)
     }
   }
 
@@ -517,16 +552,17 @@ export default function SwapPage() {
   }
 
   const isOnBSC = chainId === bsc.id
-  const formattedBalance = displayBalance && fromDecimals !== undefined ? formatUnits(displayBalance, fromDecimals) : "0"
+  const formattedBalance = displayBalance ? formatUnits(displayBalance, getFromDecimals()) : "0"
   
   // Check if user has enough balance (using BigInt for precision)
   const hasEnoughBalance = (() => {
     if (fromToken.isNative) return true // BNB balance check would need separate logic
-    if (!balance || !fromAmount || fromDecimals === undefined) return true
+    if (!balance || !fromAmount) return true
     try {
-      const needed = parseUnits(fromAmount, fromDecimals)
+      const needed = parseUnits(fromAmount, getFromDecimals())
       return balance >= needed
     } catch (e) {
+      console.error("余额检查失败:", e)
       return false
     }
   })()
@@ -779,9 +815,9 @@ export default function SwapPage() {
             <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-all">
               <div className="flex justify-between mb-1.5">
                 <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">To</span>
-                {address && !toToken.isNative && toBalance !== undefined && toDecimals !== undefined && (
+                {address && !toToken.isNative && toBalance !== undefined && (
                   <span className="text-[10px] text-white font-bold">
-                    余额: {parseFloat(formatUnits(toBalance, toDecimals)).toFixed(4)}
+                    余额: {parseFloat(formatUnits(toBalance, getToDecimals())).toFixed(4)}
                   </span>
                 )}
                 {address && toToken.isNative && toBnbBalance && (
