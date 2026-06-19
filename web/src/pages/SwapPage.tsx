@@ -469,15 +469,18 @@ export default function SwapPage() {
   }
 
   const isOnBSC = chainId === bsc.id
-  const formattedBalance = displayBalance ? formatEther(displayBalance) : "0"
+  const formattedBalance = displayBalance ? formatUnits(displayBalance, getFromDecimals()) : "0"
   
-  // Check if user has enough balance
+  // Check if user has enough balance (updated for dynamic decimals)
   const hasEnoughBalance = (() => {
     if (fromToken.isNative) return true // BNB balance check would need separate logic
-    if (!balance || !fromAmount) return true
-    const balanceNum = parseFloat(formattedBalance)
-    const neededNum = parseFloat(fromAmount)
-    return balanceNum >= neededNum
+    if (!balance || !fromAmount || fromDecimals === undefined) return true
+    try {
+      const needed = parseUnits(fromAmount, fromDecimals)
+      return balance >= needed
+    } catch (e) {
+      return false
+    }
   })()
 
   return (
