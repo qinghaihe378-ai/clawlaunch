@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useAccount, useSwitchChain, useWriteContract, useWaitForTransactionReceipt, useReadContract, useBalance } from "wagmi"
-import { parseEther, formatEther, parseUnits, formatUnits, type Address, isAddress } from "viem"
+import { parseEther, formatEther, type Address, isAddress } from "viem"
 import { bsc } from "wagmi/chains"
 
 // PancakeSwap V2 Router ABI
@@ -167,36 +167,13 @@ export default function SwapPage() {
   const [fromSearchedToken, setFromSearchedToken] = useState<{symbol: string, name: string, address: Address} | null>(null)
   const [toSearchedToken, setToSearchedToken] = useState<{symbol: string, name: string, address: Address} | null>(null)
 
-  // Get token decimals
-  const { data: fromDecimals } = useReadContract({
-    address: isAddress(fromToken.address) ? fromToken.address as Address : undefined,
-    abi: ERC20_ABI,
-    functionName: "decimals",
-    query: {
-      enabled: !!fromToken.address && !fromToken.isNative && isAddress(fromToken.address),
-    }
-  })
-
-  const { data: toDecimals } = useReadContract({
-    address: isAddress(toToken.address) ? toToken.address as Address : undefined,
-    abi: ERC20_ABI,
-    functionName: "decimals",
-    query: {
-      enabled: !!toToken.address && !toToken.isNative && isAddress(toToken.address),
-    }
-  })
-
-  // Helper to get effective decimals (default to 18 if not loaded or native)
-  const getFromDecimals = () => fromToken.isNative ? 18 : (fromDecimals !== undefined ? fromDecimals : 18)
-  const getToDecimals = () => toToken.isNative ? 18 : (toDecimals !== undefined ? toDecimals : 18)
-
   // Get quote from PancakeSwap
   const { data: amountsOut } = useReadContract({
     address: ROUTER_ADDRESS,
     abi: ROUTER_ABI,
     functionName: "getAmountsOut",
     args: fromAmount && parseFloat(fromAmount) > 0 ? [
-      parseUnits(fromAmount, getFromDecimals()),
+      parseEther(fromAmount),
       [fromToken.address, toToken.address]
     ] : undefined,
     query: {
@@ -284,12 +261,12 @@ export default function SwapPage() {
   // Update toAmount when quote changes
   useEffect(() => {
     if (amountsOut && amountsOut.length > 1) {
-      const formatted = formatUnits(amountsOut[1], getToDecimals())
+      const formatted = formatEther(amountsOut[1])
       setToAmount(parseFloat(formatted).toFixed(6))
     } else {
       setToAmount("")
     }
-  }, [amountsOut, toDecimals])
+  }, [amountsOut])
 
   // Calculate liquidity and price
   const liquidityInfo = (() => {
@@ -422,7 +399,7 @@ export default function SwapPage() {
       address: fromToken.address,
       abi: ERC20_ABI,
       functionName: "approve",
-      args: [ROUTER_ADDRESS, parseUnits("1000000", getFromDecimals())],
+      args: [ROUTER_ADDRESS, parseEther("1000000")],
     })
   }
 
@@ -430,8 +407,8 @@ export default function SwapPage() {
     if (!address || !fromAmount || !toAmount) return
     
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200)
-    const amountIn = parseUnits(fromAmount, getFromDecimals())
-    const amountOutMin = parseUnits((parseFloat(toAmount) * (1 - slippage / 100)).toString(), getToDecimals())
+    const amountIn = parseEther(fromAmount)
+    const amountOutMin = parseEther((parseFloat(toAmount) * (1 - slippage / 100)).toString())
     const path = [fromToken.address, toToken.address]
 
     if (fromToken.isNative) {
