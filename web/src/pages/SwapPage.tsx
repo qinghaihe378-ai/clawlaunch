@@ -195,12 +195,12 @@ export default function SwapPage() {
     address: ROUTER_ADDRESS,
     abi: ROUTER_ABI,
     functionName: "getAmountsOut",
-    args: fromAmount && parseFloat(fromAmount) > 0 ? [
+    args: fromAmount && parseFloat(fromAmount) > 0 && (!fromToken.isNative ? fromDecimals !== undefined : true) ? [
       parseUnits(fromAmount, getFromDecimals()),
       [fromToken.address, toToken.address]
     ] : undefined,
     query: {
-      enabled: !!fromAmount && parseFloat(fromAmount) > 0,
+      enabled: !!fromAmount && parseFloat(fromAmount) > 0 && (!fromToken.isNative ? fromDecimals !== undefined : true),
     }
   })
 
@@ -294,9 +294,10 @@ export default function SwapPage() {
   // Calculate liquidity and price
   const liquidityInfo = (() => {
     if (!reserves || reserves.length < 2) return null
+    if (fromDecimals === undefined || toDecimals === undefined) return null
     
-    const reserve0 = parseFloat(formatUnits(reserves[0], getFromDecimals()))
-    const reserve1 = parseFloat(formatUnits(reserves[1], getToDecimals()))
+    const reserve0 = parseFloat(formatUnits(reserves[0], fromDecimals))
+    const reserve1 = parseFloat(formatUnits(reserves[1], toDecimals))
     
     // Calculate price (reserve1 / reserve0)
     const price = reserve0 > 0 ? reserve1 / reserve0 : 0
@@ -316,8 +317,8 @@ export default function SwapPage() {
   useEffect(() => {
     if (fromToken.isNative) {
       setIsApproved(true)
-    } else if (allowance && fromAmount) {
-      const needed = parseUnits(fromAmount, getFromDecimals())
+    } else if (allowance && fromAmount && fromDecimals !== undefined) {
+      const needed = parseUnits(fromAmount, fromDecimals)
       setIsApproved(allowance >= needed)
     } else {
       // Reset to false when token changes or no amount entered
@@ -417,6 +418,10 @@ export default function SwapPage() {
 
   const handleApprove = () => {
     if (!address || !fromAmount) return
+    if (!fromToken.isNative && fromDecimals === undefined) {
+      console.warn("等待代币精度加载...")
+      return
+    }
     
     approve({
       address: fromToken.address,
@@ -428,6 +433,18 @@ export default function SwapPage() {
 
   const handleSwap = () => {
     if (!address || !fromAmount || !toAmount) return
+    
+    // Check if decimals are loaded for non-native tokens
+    if (!fromToken.isNative && fromDecimals === undefined) {
+      console.warn("等待 From Token 精度加载...")
+      alert("正在加载代币信息，请稍后再试")
+      return
+    }
+    if (!toToken.isNative && toDecimals === undefined) {
+      console.warn("等待 To Token 精度加载...")
+      alert("正在加载代币信息，请稍后再试")
+      return
+    }
     
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200)
     const amountIn = parseUnits(fromAmount, getFromDecimals())
@@ -469,14 +486,14 @@ export default function SwapPage() {
   }
 
   const isOnBSC = chainId === bsc.id
-  const formattedBalance = displayBalance ? formatUnits(displayBalance, getFromDecimals()) : "0"
+  const formattedBalance = displayBalance && fromDecimals !== undefined ? formatUnits(displayBalance, fromDecimals) : "0"
   
   // Check if user has enough balance (using BigInt for precision)
   const hasEnoughBalance = (() => {
     if (fromToken.isNative) return true // BNB balance check would need separate logic
-    if (!balance || !fromAmount) return true
+    if (!balance || !fromAmount || fromDecimals === undefined) return true
     try {
-      const needed = parseUnits(fromAmount, getFromDecimals())
+      const needed = parseUnits(fromAmount, fromDecimals)
       return balance >= needed
     } catch (e) {
       return false
@@ -731,9 +748,9 @@ export default function SwapPage() {
             <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-all">
               <div className="flex justify-between mb-1.5">
                 <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">To</span>
-                {address && !toToken.isNative && toBalance !== undefined && (
+                {address && !toToken.isNative && toBalance !== undefined && toDecimals !== undefined && (
                   <span className="text-[10px] text-white font-bold">
-                    余额: {parseFloat(formatUnits(toBalance, getToDecimals())).toFixed(4)}
+                    余额: {parseFloat(formatUnits(toBalance, toDecimals)).toFixed(4)}
                   </span>
                 )}
                 {address && toToken.isNative && toBnbBalance && (
