@@ -202,6 +202,8 @@ export default function PoolPage() {
   const [slippage, setSlippage] = useState(0.5)
   const [showSlippageModal, setShowSlippageModal] = useState(false)
   const [customSlippage, setCustomSlippage] = useState("")
+  const [showAddSuccess, setShowAddSuccess] = useState(false)
+  const [showRemoveSuccess, setShowRemoveSuccess] = useState(false)
   
   // Searched token info
   const [fromSearchedToken, setFromSearchedToken] = useState<{symbol: string, name: string, address: Address} | null>(null)
@@ -505,6 +507,23 @@ export default function PoolPage() {
   
   const { isLoading: isAddConfirming, isSuccess: isAddConfirmed } = useWaitForTransactionReceipt({ hash: addTxHash })
   const { isLoading: isRemoveConfirming, isSuccess: isRemoveConfirmed } = useWaitForTransactionReceipt({ hash: removeTxHash })
+  
+  // Auto-hide success messages after 1 second
+  useEffect(() => {
+    if (isAddConfirmed) {
+      setShowAddSuccess(true)
+      const timer = setTimeout(() => setShowAddSuccess(false), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [isAddConfirmed])
+  
+  useEffect(() => {
+    if (isRemoveConfirmed) {
+      setShowRemoveSuccess(true)
+      const timer = setTimeout(() => setShowRemoveSuccess(false), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [isRemoveConfirmed])
   
   const handleApproveTokenA = () => {
     if (!address || !amountA) return
@@ -1111,6 +1130,12 @@ export default function PoolPage() {
               <span className="text-xs text-green-400 font-medium">✅ 添加成功！</span>
             </div>
           )}
+          
+          {showAddSuccess && !isAddConfirmed && (
+            <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-center backdrop-blur-sm animate-fade-out">
+              <span className="text-xs text-green-400 font-medium">✅ 添加成功！</span>
+            </div>
+          )}
 
           {/* Add Liquidity Button */}
           {!address ? (
@@ -1179,6 +1204,12 @@ export default function PoolPage() {
               
               {isRemoveConfirmed && (
                 <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-center backdrop-blur-sm">
+                  <span className="text-xs text-green-400 font-medium">✅ 移除成功！</span>
+                </div>
+              )}
+              
+              {showRemoveSuccess && !isRemoveConfirmed && (
+                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-xl text-center backdrop-blur-sm animate-fade-out">
                   <span className="text-xs text-green-400 font-medium">✅ 移除成功！</span>
                 </div>
               )}
