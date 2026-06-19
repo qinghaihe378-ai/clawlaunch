@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useAccount, useSwitchChain, useWriteContract, useWaitForTransactionReceipt, useReadContract, useBalance } from "wagmi"
 import { formatEther, parseUnits, formatUnits, type Address, isAddress } from "viem"
 import { bsc } from "wagmi/chains"
@@ -214,6 +214,26 @@ export default function SwapPage() {
   const [fromSearchedToken, setFromSearchedToken] = useState<TokenOption | null>(null)
   const [toSearchedToken, setToSearchedToken] = useState<TokenOption | null>(null)
 
+  const sanitizeAmountInput = (value: string, decimals: number): string => {
+    if (decimals !== 0) return value
+    return value.replace(/[^\d]/g, "")
+  }
+
+  const parseAmountValue = (value: string, decimals: number): bigint | null => {
+    if (!value) return null
+    try {
+      return parseUnits(value, decimals)
+    } catch {
+      return null
+    }
+  }
+
+  const formatAmountForDisplay = (value: bigint, decimals: number, fractionDigits = 6): string => {
+    const formatted = formatUnits(value, decimals)
+    if (decimals === 0) return formatted
+    return parseFloat(formatted).toFixed(fractionDigits)
+  }
+
   // Get token decimals with timeout protection
   const { data: fromDecimals, isLoading: isFromDecimalsLoading, error: fromDecimalsError } = useReadContract({
     address: isAddress(fromToken.address) && !fromToken.isNative ? fromToken.address as Address : undefined,
@@ -283,6 +303,13 @@ export default function SwapPage() {
     })
     return decimals
   }
+
+  const fromTokenDecimals = getFromDecimals()
+  const toTokenDecimals = getToDecimals()
+  const parsedFromAmount = useMemo(
+    () => parseAmountValue(fromAmount, fromTokenDecimals),
+    [fromAmount, fromTokenDecimals]
+  )
   
   // Check if we can proceed with swap
   const canSwap = () => {
@@ -295,12 +322,12 @@ export default function SwapPage() {
     address: ROUTER_ADDRESS,
     abi: ROUTER_ABI,
     functionName: "getAmountsOut",
-    args: fromAmount && parseFloat(fromAmount) > 0 ? [
-      parseUnits(fromAmount, getFromDecimals()),
+    args: parsedFromAmount !== null && parsedFromAmount > 0n ? [
+      parsedFromAmount,
       [fromToken.address, toToken.address]
     ] : undefined,
     query: {
-      enabled: !!fromAmount && parseFloat(fromAmount) > 0,
+      enabled: parsedFromAmount !== null && parsedFromAmount > 0n,
       retry: 1,
     }
   })
@@ -402,8 +429,7 @@ export default function SwapPage() {
   useEffect(() => {
     if (amountsOut && amountsOut.length > 1) {
       try {
-        const formatted = formatUnits(amountsOut[1], getToDecimals())
-        setToAmount(parseFloat(formatted).toFixed(6))
+        setToAmount(formatAmountForDisplay(amountsOut[1], toTokenDecimals))
       } catch (e) {
         console.error("格式化报价失败:", e)
         setToAmount("")
@@ -411,7 +437,7 @@ export default function SwapPage() {
     } else {
       setToAmount("")
     }
-  }, [amountsOut])
+  }, [amountsOut, toTokenDecimals])
   
   // Check for zero output and show warning
   const hasZeroOutput = amountsOut && amountsOut.length > 1 && amountsOut[1] === BigInt(0)
@@ -448,8 +474,8 @@ export default function SwapPage() {
       setIsApproved(true)
     } else if (allowance && fromAmount) {
       try {
-        const needed = parseUnits(fromAmount, getFromDecimals())
-        setIsApproved(allowance >= needed)
+        const needed = parseAmountValue(fromAmount, fromTokenDecimals)
+        setIsApproved(needed !== null && allowance >= needed)
       } catch (e) {
         console.error("授权检查失败:", e)
         setIsApproved(false)
@@ -458,7 +484,7 @@ export default function SwapPage() {
       // Reset to false when token changes or no amount entered
       setIsApproved(false)
     }
-  }, [allowance, fromAmount, fromToken.address, fromToken.isNative])
+  }, [allowance, fromAmount, fromToken.address, fromToken.isNative, fromTokenDecimals])
 
   // Search token by address for FROM
   const { data: fromTokenSymbol } = useReadContract({
@@ -635,6 +661,12 @@ export default function SwapPage() {
     
     const fromDec = getFromDecimals()
     const toDec = getToDecimals()
+    const amountInValue = parseAmountValue(fromAmount, fromDec)
+
+    if (amountInValue === null) {
+      alert(fromDec === 0 ? `该代币是 0 精度，只能输入整数数量` : `输入金额格式不正确`)
+      return
+    }
     
     console.log("准备执行 Swap:", {
       fromToken: fromToken.symbol,
@@ -652,21 +684,20 @@ export default function SwapPage() {
         symbol: fromToken.symbol,
         address: fromToken.address,
         decimals: fromDec,
-        amountIn: parseUnits(fromAmount, fromDec).toString(),
+        amountIn: amountInValue.toString(),
         displayBalance: displayBalance?.toString(),
         formattedBalance: formattedBalance
       })
       
       // Check allowance
       if (allowance !== undefined) {
-        const amountIn = parseUnits(fromAmount, fromDec)
         console.log("[卖出检查] 授权状态:", {
           allowance: allowance.toString(),
-          needed: amountIn.toString(),
-          hasEnough: allowance >= amountIn
+          needed: amountInValue.toString(),
+          hasEnough: allowance >= amountInValue
         })
         
-        if (allowance < amountIn) {
+        if (allowance < amountInValue) {
           console.error("[卖出检查] ❌ 授权额度不足!")
           alert(`授权额度不足！\n\n需要: ${fromAmount} ${fromToken.symbol}\n已授权: ${formatUnits(allowance, fromDec)} ${fromToken.symbol}\n\n请先点击"授权"按钮`)
           return
@@ -675,14 +706,13 @@ export default function SwapPage() {
       
       // Check balance
       if (balance !== undefined) {
-        const amountIn = parseUnits(fromAmount, fromDec)
         console.log("[卖出检查] 余额状态:", {
           balance: balance.toString(),
-          needed: amountIn.toString(),
-          hasEnough: balance >= amountIn
+          needed: amountInValue.toString(),
+          hasEnough: balance >= amountInValue
         })
         
-        if (balance < amountIn) {
+        if (balance < amountInValue) {
           console.error("[卖出检查] ❌ 余额不足!")
           alert(`余额不足！\n\n需要: ${fromAmount} ${fromToken.symbol}\n当前余额: ${formattedBalance} ${fromToken.symbol}`)
           return
@@ -692,10 +722,15 @@ export default function SwapPage() {
     
     try {
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200)
-      const amountIn = parseUnits(fromAmount, fromDec)
+      const amountIn = amountInValue
       
       // Calculate amountOutMin with slippage using BigInt to avoid precision loss
-      const amountsOutValue = amountsOut && amountsOut.length > 1 ? amountsOut[1] : parseUnits(toAmount, toDec)
+      const fallbackAmountOut = parseAmountValue(toAmount, toDec)
+      if (!amountsOut && fallbackAmountOut === null) {
+        alert(toDec === 0 ? `目标代币是 0 精度，预估输出必须是整数` : `预估输出金额格式不正确`)
+        return
+      }
+      const amountsOutValue = amountsOut && amountsOut.length > 1 ? amountsOut[1] : (fallbackAmountOut ?? 0n)
       
       console.log("[DEBUG] 滑点计算:", {
         amountsOut: amountsOut?.map(a => a.toString()),
@@ -774,15 +809,14 @@ export default function SwapPage() {
   }
 
   const isOnBSC = chainId === bsc.id
-  const formattedBalance = displayBalance ? formatUnits(displayBalance, getFromDecimals()) : "0"
+  const formattedBalance = displayBalance ? formatUnits(displayBalance, fromTokenDecimals) : "0"
   
   // Check if user has enough balance (using BigInt for precision)
   const hasEnoughBalance = (() => {
     if (fromToken.isNative) return true // BNB balance check would need separate logic
     if (!balance || !fromAmount) return true
     try {
-      const needed = parseUnits(fromAmount, getFromDecimals())
-      return balance >= needed
+      return parsedFromAmount !== null && balance >= parsedFromAmount
     } catch (e) {
       console.error("余额检查失败:", e)
       return false
@@ -823,7 +857,7 @@ export default function SwapPage() {
                       最大
                     </button>
                     <span className="text-[10px] text-white font-bold">
-                      余额: {parseFloat(formattedBalance || "0").toFixed(4)}
+                      余额: {fromTokenDecimals === 0 ? formattedBalance : parseFloat(formattedBalance || "0").toFixed(4)}
                     </span>
                   </div>
                 )}
@@ -842,7 +876,8 @@ export default function SwapPage() {
                 <input
                   type="number"
                   value={fromAmount}
-                  onChange={(e) => setFromAmount(e.target.value)}
+                  step={fromTokenDecimals === 0 ? "1" : "any"}
+                  onChange={(e) => setFromAmount(sanitizeAmountInput(e.target.value, fromTokenDecimals))}
                   placeholder="0.0"
                   className="flex-1 bg-transparent text-2xl font-light text-white placeholder-gray-500 focus:outline-none min-w-0"
                 />
@@ -1040,7 +1075,7 @@ export default function SwapPage() {
                 <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">To</span>
                 {address && !toToken.isNative && toBalance !== undefined && (
                   <span className="text-[10px] text-white font-bold">
-                    余额: {parseFloat(formatUnits(toBalance, getToDecimals())).toFixed(4)}
+                    余额: {toTokenDecimals === 0 ? formatUnits(toBalance, toTokenDecimals) : parseFloat(formatUnits(toBalance, toTokenDecimals)).toFixed(4)}
                   </span>
                 )}
                 {address && toToken.isNative && toBnbBalance && (
@@ -1053,7 +1088,7 @@ export default function SwapPage() {
                     余额: 0.0000
                   </span>
                 )}
-                {!address && toAmount && <span className="text-[10px] text-blue-400 font-medium">≈ {parseFloat(toAmount).toFixed(6)} {toToken.symbol}</span>}
+                {!address && toAmount && <span className="text-[10px] text-blue-400 font-medium">≈ {toTokenDecimals === 0 ? toAmount : parseFloat(toAmount).toFixed(6)} {toToken.symbol}</span>}
               </div>
               <div className="flex items-center justify-between gap-2">
                 <input
@@ -1267,7 +1302,7 @@ export default function SwapPage() {
           )}
 
           {/* Liquidity Info */}
-          {liquidityInfo && fromAmount && parseFloat(fromAmount) > 0 && (
+          {liquidityInfo && parsedFromAmount !== null && parsedFromAmount > 0n && (
             <div className="bg-gradient-to-br from-gray-800/30 to-gray-900/30 rounded-xl p-3 border border-white/5 space-y-2">
               {/* Zero Output Warning */}
               {hasZeroOutput && (
@@ -1286,7 +1321,7 @@ export default function SwapPage() {
                 <span className="text-gray-300">价格</span>
                 <span className="text-white font-medium">
                   {amountsOut && amountsOut.length > 1 ? (
-                    `1 ${fromToken.symbol} ≈ ${(parseFloat(formatUnits(amountsOut[1], getToDecimals())) / parseFloat(fromAmount)).toFixed(6)} ${toToken.symbol}`
+                    `1 ${fromToken.symbol} ≈ ${formatAmountForDisplay(amountsOut[1], toTokenDecimals)} ${toToken.symbol}`
                   ) : (
                     `1 ${fromToken.symbol} ≈ ${liquidityInfo.price.toFixed(6)} ${toToken.symbol}`
                   )}
@@ -1331,6 +1366,13 @@ export default function SwapPage() {
               className="w-full py-3.5 bg-white/5 rounded-xl font-bold text-gray-500 cursor-not-allowed border border-white/5 text-sm"
             >
               输入金额
+            </button>
+          ) : parsedFromAmount === null ? (
+            <button
+              disabled
+              className="w-full py-3.5 bg-red-500/20 rounded-xl font-bold text-red-400 cursor-not-allowed border border-red-500/30 text-sm"
+            >
+              {fromTokenDecimals === 0 ? "0 精度代币只能输入整数" : "金额格式不正确"}
             </button>
           ) : !hasEnoughBalance ? (
             <button
