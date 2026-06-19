@@ -613,12 +613,17 @@ export default function SwapPage() {
       const slippageBps = BigInt(Math.floor(slippage * 100)) // Convert to basis points (e.g., 0.5% = 50 bps)
       const amountOutMin = amountsOutValue * (BigInt(10000) - slippageBps) / BigInt(10000)
       
+      // IMPORTANT: Path must be in the correct order for the swap direction
+      // For sell (token -> BNB): [tokenAddress, WBNB]
+      // For buy (BNB -> token): [WBNB, tokenAddress]
       const path = [fromToken.address, toToken.address]
       
       console.log("交易参数:", {
+        fromToken: fromToken.symbol,
+        toToken: toToken.symbol,
+        path: path,
         amountIn: amountIn.toString(),
         amountOutMin: amountOutMin.toString(),
-        path,
         deadline: deadline.toString(),
         slippageBps: slippageBps.toString()
       })
