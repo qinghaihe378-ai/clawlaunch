@@ -211,17 +211,17 @@ export default function SwapPage() {
     return fromDecimals !== undefined && toDecimals !== undefined
   }
 
-  // Get quote from PancakeSwap
+  // Get quote from PancakeSwap - ONLY after decimals are loaded
   const { data: amountsOut, error: quoteError } = useReadContract({
     address: ROUTER_ADDRESS,
     abi: ROUTER_ABI,
     functionName: "getAmountsOut",
-    args: fromAmount && parseFloat(fromAmount) > 0 ? [
+    args: fromAmount && parseFloat(fromAmount) > 0 && canSwap() ? [
       parseUnits(fromAmount, getFromDecimals()),
       [fromToken.address, toToken.address]
     ] : undefined,
     query: {
-      enabled: !!fromAmount && parseFloat(fromAmount) > 0,
+      enabled: !!fromAmount && parseFloat(fromAmount) > 0 && canSwap(),
       retry: 1,
     }
   })
