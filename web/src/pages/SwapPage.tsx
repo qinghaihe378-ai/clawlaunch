@@ -469,8 +469,9 @@ export default function SwapPage() {
   
   // Execute swap
   const { writeContract: swap, isPending: isSwapping, data: txHash } = useWriteContract()
-  const { isLoading: isConfirming, isSuccess: isConfirmed, data: receipt } = useWaitForTransactionReceipt({
+  const { isLoading: isConfirming, isSuccess: isConfirmed, data: receipt, isError: isTxError, error: txError } = useWaitForTransactionReceipt({
     hash: txHash,
+    timeout: 60000, // 60 second timeout
   })
 
   // Check transaction status and show error if reverted
@@ -481,6 +482,14 @@ export default function SwapPage() {
       alert('交易失败！可能原因：\n1. 滑点设置过低\n2. 流动性不足\n3. Gas 不足\n4. 代币合约有特殊限制\n\n请查看控制台日志获取详细信息。')
     }
   }, [receipt, txHash])
+
+  // Check for transaction errors or timeout
+  useEffect(() => {
+    if (isTxError) {
+      console.error('❌ 交易错误:', txError)
+      alert(`交易出错：${txError?.message || '未知错误'}\n\n请检查网络连接或稍后重试。`)
+    }
+  }, [isTxError, txError])
 
   // Refetch allowance after approval transaction is confirmed
   useEffect(() => {
@@ -1129,9 +1138,17 @@ export default function SwapPage() {
             </div>
           )}
 
-          {isConfirming && (
+          {isConfirming && txHash && (
             <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-2xl text-center backdrop-blur-sm">
-              <span className="text-sm text-purple-400 font-medium">⏳ 交易中...</span>
+              <span className="text-sm text-purple-400 font-medium mb-2 block">⏳ 交易中...</span>
+              <a 
+                href={`https://bscscan.com/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-purple-300 hover:text-purple-200 underline"
+              >
+                在 BSCScan 上查看
+              </a>
             </div>
           )}
 
