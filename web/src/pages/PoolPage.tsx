@@ -560,30 +560,45 @@ export default function PoolPage() {
   }
   
   const handleRemoveLiquidity = () => {
-    if (!address || !lpBalance || lpBalance === 0n) return
+    if (!address || !lpBalance || lpBalance === 0n) {
+      alert("您没有该交易对的流动性凭证 (LP Token)，无法移除。")
+      return
+    }
     
     const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200)
     const liquidityToRemove = lpBalance * BigInt(removePercentage) / BigInt(100)
-    const amountAMin = 0n // For simplicity, set to 0. In production, calculate properly
-    const amountBMin = 0n
     
-    if (removeTokenA.isNative || removeTokenB.isNative) {
-      const token = removeTokenA.isNative ? removeTokenB.address : removeTokenA.address
-      removeLiquidityTx({
-        address: ROUTER_ADDRESS,
-        abi: ROUTER_ABI,
-        functionName: "removeLiquidityETH",
-        args: [token, liquidityToRemove, amountAMin, amountBMin, address, deadline],
-        gas: BigInt(300000), // Explicitly set gas limit for ETH removal
-      })
-    } else {
-      removeLiquidityTx({
-        address: ROUTER_ADDRESS,
-        abi: ROUTER_ABI,
-        functionName: "removeLiquidity",
-        args: [removeTokenA.address, removeTokenB.address, liquidityToRemove, amountAMin, amountBMin, address, deadline],
-        gas: BigInt(300000), // Explicitly set gas limit for token removal
-      })
+    // 设置一个极小值防止精度丢失导致的 revert，而不是直接用 0
+    const amountAMin = 1n 
+    const amountBMin = 1n
+    
+    console.log("正在尝试移除流动性...", {
+      tokenA: removeTokenA.address,
+      tokenB: removeTokenB.address,
+      liquidity: liquidityToRemove.toString(),
+      isNative: removeTokenA.isNative || removeTokenB.isNative
+    })
+
+    try {
+      if (removeTokenA.isNative || removeTokenB.isNative) {
+        const token = removeTokenA.isNative ? removeTokenB.address : removeTokenA.address
+        removeLiquidityTx({
+          address: ROUTER_ADDRESS,
+          abi: ROUTER_ABI,
+          functionName: "removeLiquidityETH",
+          args: [token, liquidityToRemove, amountAMin, amountBMin, address, deadline],
+        })
+      } else {
+        removeLiquidityTx({
+          address: ROUTER_ADDRESS,
+          abi: ROUTER_ABI,
+          functionName: "removeLiquidity",
+          args: [removeTokenA.address, removeTokenB.address, liquidityToRemove, amountAMin, amountBMin, address, deadline],
+        })
+      }
+    } catch (error) {
+      console.error("移除流动性调用失败:", error)
+      alert("交易发起失败，请检查控制台日志或钱包连接状态。")
     }
   }
 
