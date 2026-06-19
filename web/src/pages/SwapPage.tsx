@@ -570,7 +570,11 @@ export default function SwapPage() {
 
 
   // Approve token
-  const { writeContract: approve, isPending: isApproving } = useWriteContract()
+  const { writeContract: approve, isPending: isApproving, data: approveTxHash } = useWriteContract()
+  const { isLoading: isApproveConfirming, isSuccess: isApproveConfirmed } = useWaitForTransactionReceipt({
+    hash: approveTxHash,
+    timeout: 60000,
+  })
   
   // Execute swap
   const { writeContract: swap, isPending: isSwapping, data: txHash } = useWriteContract()
@@ -598,10 +602,10 @@ export default function SwapPage() {
 
   // Refetch allowance after approval transaction is confirmed
   useEffect(() => {
-    if (isConfirmed && !isSwapping) {
+    if (isApproveConfirmed) {
       refetchAllowance()
     }
-  }, [isConfirmed, isSwapping, refetchAllowance])
+  }, [isApproveConfirmed, refetchAllowance])
 
   // Refetch balance after swap transaction is confirmed
   useEffect(() => {
@@ -1269,7 +1273,7 @@ export default function SwapPage() {
             </div>
 
           {/* Status Messages */}
-          {isApproving && (
+          {(isApproving || isApproveConfirming) && (
             <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-center backdrop-blur-sm">
               <span className="text-sm text-blue-400 font-medium">⏳ 授权中...</span>
             </div>
@@ -1378,10 +1382,10 @@ export default function SwapPage() {
           ) : !isApproved && !fromToken.isNative ? (
             <button
               onClick={handleApprove}
-              disabled={isApproving}
+              disabled={isApproving || isApproveConfirming}
               className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl font-bold text-white transition-all disabled:opacity-50 shadow-xl shadow-blue-600/20 active:scale-[0.98] text-sm"
             >
-              {isApproving ? "授权中..." : `授权 ${fromToken.symbol}`}
+              {isApproving || isApproveConfirming ? "授权中..." : `授权 ${fromToken.symbol}`}
             </button>
           ) : hasZeroOutput ? (
             <button

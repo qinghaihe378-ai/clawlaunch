@@ -451,7 +451,7 @@ export default function PoolPage() {
   })
 
   // Get balance for token A (ERC20)
-  const { data: poolTokenABalance } = useReadContract({
+  const { data: poolTokenABalance, refetch: refetchPoolTokenABalance } = useReadContract({
     address: isAddress(poolTokenA.address) ? poolTokenA.address as Address : undefined,
     abi: ERC20_ABI,
     functionName: "balanceOf",
@@ -462,7 +462,7 @@ export default function PoolPage() {
   })
 
   // Get BNB balance for token A
-  const { data: poolTokenABnbBalance } = useBalance({
+  const { data: poolTokenABnbBalance, refetch: refetchPoolTokenABnbBalance } = useBalance({
     address: address,
     query: {
       enabled: !!address && poolTokenA.isNative,
@@ -470,7 +470,7 @@ export default function PoolPage() {
   })
 
   // Get balance for token B (ERC20)
-  const { data: poolTokenBBalance } = useReadContract({
+  const { data: poolTokenBBalance, refetch: refetchPoolTokenBBalance } = useReadContract({
     address: isAddress(poolTokenB.address) ? poolTokenB.address as Address : undefined,
     abi: ERC20_ABI,
     functionName: "balanceOf",
@@ -481,7 +481,7 @@ export default function PoolPage() {
   })
 
   // Get BNB balance for token B
-  const { data: poolTokenBBnbBalance } = useBalance({
+  const { data: poolTokenBBnbBalance, refetch: refetchPoolTokenBBnbBalance } = useBalance({
     address: address,
     query: {
       enabled: !!address && poolTokenB.isNative,
@@ -519,23 +519,25 @@ export default function PoolPage() {
   const isOnBSC = chainId === bsc.id
   
   // Add Liquidity: Check allowances
-  const { data: tokenAAllowance } = useReadContract({
+  const { data: tokenAAllowance, refetch: refetchTokenAAllowance } = useReadContract({
     address: isAddress(poolTokenA.address) ? poolTokenA.address as Address : undefined,
     abi: ERC20_ABI,
     functionName: "allowance",
     args: address && amountA ? [address, ROUTER_ADDRESS] : undefined,
     query: {
       enabled: !!address && !poolTokenA.isNative && !!amountA && isAddress(poolTokenA.address),
+      refetchInterval: 3000,
     }
   })
   
-  const { data: tokenBAllowance } = useReadContract({
+  const { data: tokenBAllowance, refetch: refetchTokenBAllowance } = useReadContract({
     address: isAddress(poolTokenB.address) ? poolTokenB.address as Address : undefined,
     abi: ERC20_ABI,
     functionName: "allowance",
     args: address && amountB ? [address, ROUTER_ADDRESS] : undefined,
     query: {
       enabled: !!address && !poolTokenB.isNative && !!amountB && isAddress(poolTokenB.address),
+      refetchInterval: 3000,
     }
   })
   
@@ -565,7 +567,7 @@ export default function PoolPage() {
     }
   })
   
-  const { data: lpBalance } = useReadContract({
+  const { data: lpBalance, refetch: refetchLpBalance } = useReadContract({
     address: removePairAddress && removePairAddress !== '0x0000000000000000000000000000000000000000' ? removePairAddress as Address : undefined,
     abi: PAIR_ABI,
     functionName: "balanceOf",
@@ -575,7 +577,7 @@ export default function PoolPage() {
     }
   })
   
-  const { data: lpTotalSupply } = useReadContract({
+  const { data: lpTotalSupply, refetch: refetchLpTotalSupply } = useReadContract({
     address: removePairAddress && removePairAddress !== '0x0000000000000000000000000000000000000000' ? removePairAddress as Address : undefined,
     abi: PAIR_ABI,
     functionName: "totalSupply",
@@ -584,13 +586,14 @@ export default function PoolPage() {
     }
   })
 
-  const { data: lpAllowance } = useReadContract({
+  const { data: lpAllowance, refetch: refetchLpAllowance } = useReadContract({
     address: removePairAddress && removePairAddress !== '0x0000000000000000000000000000000000000000' ? removePairAddress as Address : undefined,
     abi: ERC20_ABI,
     functionName: "allowance",
     args: address ? [address, ROUTER_ADDRESS] : undefined,
     query: {
       enabled: !!address && !!removePairAddress && removePairAddress !== '0x0000000000000000000000000000000000000000',
+      refetchInterval: 3000,
     }
   })
   
@@ -602,12 +605,67 @@ export default function PoolPage() {
   const hasLpApproval = !!lpAllowance && liquidityToRemove > 0n && lpAllowance >= liquidityToRemove
   
   // Write contracts for add/remove liquidity
-  const { writeContract: approveToken, isPending: isApproving } = useWriteContract()
+  const { writeContract: approveToken, isPending: isApproving, data: approveTxHash } = useWriteContract()
   const { writeContract: addLiquidityTx, isPending: isAdding, data: addTxHash } = useWriteContract()
   const { writeContract: removeLiquidityTx, isPending: isRemoving, data: removeTxHash } = useWriteContract()
   
+  const { isLoading: isApproveConfirming, isSuccess: isApproveConfirmed } = useWaitForTransactionReceipt({ hash: approveTxHash })
   const { isLoading: isAddConfirming, isSuccess: isAddConfirmed } = useWaitForTransactionReceipt({ hash: addTxHash })
   const { isLoading: isRemoveConfirming, isSuccess: isRemoveConfirmed } = useWaitForTransactionReceipt({ hash: removeTxHash })
+
+  useEffect(() => {
+    if (!isApproveConfirmed) return
+
+    refetchTokenAAllowance()
+    refetchTokenBAllowance()
+    refetchLpAllowance()
+    refetchLpBalance()
+    refetchLpTotalSupply()
+  }, [isApproveConfirmed, refetchLpAllowance, refetchLpBalance, refetchLpTotalSupply, refetchTokenAAllowance, refetchTokenBAllowance])
+
+  useEffect(() => {
+    if (!isAddConfirmed) return
+
+    refetchTokenAAllowance()
+    refetchTokenBAllowance()
+    refetchPoolTokenABalance()
+    refetchPoolTokenBBalance()
+    refetchPoolTokenABnbBalance()
+    refetchPoolTokenBBnbBalance()
+    refetchLpBalance()
+    refetchLpTotalSupply()
+  }, [
+    isAddConfirmed,
+    refetchLpBalance,
+    refetchLpTotalSupply,
+    refetchPoolTokenABalance,
+    refetchPoolTokenABnbBalance,
+    refetchPoolTokenBBalance,
+    refetchPoolTokenBBnbBalance,
+    refetchTokenAAllowance,
+    refetchTokenBAllowance,
+  ])
+
+  useEffect(() => {
+    if (!isRemoveConfirmed) return
+
+    refetchLpAllowance()
+    refetchLpBalance()
+    refetchLpTotalSupply()
+    refetchPoolTokenABalance()
+    refetchPoolTokenBBalance()
+    refetchPoolTokenABnbBalance()
+    refetchPoolTokenBBnbBalance()
+  }, [
+    isRemoveConfirmed,
+    refetchLpAllowance,
+    refetchLpBalance,
+    refetchLpTotalSupply,
+    refetchPoolTokenABalance,
+    refetchPoolTokenABnbBalance,
+    refetchPoolTokenBBalance,
+    refetchPoolTokenBBnbBalance,
+  ])
   
   const handleApproveTokenA = () => {
     if (!address || !amountA) return
@@ -712,9 +770,9 @@ export default function PoolPage() {
     console.log("9. 要移除的流动性:", liquidityToRemove.toString())
     console.log("10. Deadline:", deadline.toString())
     
-    // 设置一个极小值防止精度丢失导致的 revert，而不是直接用 0
-    const amountAMin = 1n 
-    const amountBMin = 1n
+    // 0 精度代币在小额撤池子时可能拿不到完整 1 个代币，最小值设为 1 会直接 revert。
+    const amountAMin = 0n
+    const amountBMin = 0n
     
     console.log("正在尝试移除流动性...", {
       tokenA: `${removeTokenA.symbol} (${removeTokenA.address})`,
@@ -1213,7 +1271,7 @@ export default function PoolPage() {
           )}
 
           {/* Status Messages */}
-          {isApproving && (
+          {(isApproving || isApproveConfirming) && (
             <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-center backdrop-blur-sm">
               <span className="text-xs text-blue-400 font-medium">⏳ 授权中...</span>
             </div>
@@ -1269,18 +1327,18 @@ export default function PoolPage() {
           ) : !isTokenAAproved && !poolTokenA.isNative ? (
             <button
               onClick={handleApproveTokenA}
-              disabled={isApproving}
+              disabled={isApproving || isApproveConfirming}
               className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl font-bold text-white transition-all disabled:opacity-50 shadow-xl shadow-blue-600/20 active:scale-[0.98] text-sm"
             >
-              {isApproving ? "授权中..." : `授权 ${poolTokenA.symbol}`}
+              {isApproving || isApproveConfirming ? "授权中..." : `授权 ${poolTokenA.symbol}`}
             </button>
           ) : !isTokenBApproved && !poolTokenB.isNative ? (
             <button
               onClick={handleApproveTokenB}
-              disabled={isApproving}
+              disabled={isApproving || isApproveConfirming}
               className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl font-bold text-white transition-all disabled:opacity-50 shadow-xl shadow-blue-600/20 active:scale-[0.98] text-sm"
             >
-              {isApproving ? "授权中..." : `授权 ${poolTokenB.symbol}`}
+              {isApproving || isApproveConfirming ? "授权中..." : `授权 ${poolTokenB.symbol}`}
             </button>
           ) : (
             <button
@@ -1418,10 +1476,10 @@ export default function PoolPage() {
               ) : !hasLpApproval ? (
                 <button
                   onClick={handleApproveLp}
-                  disabled={isApproving || liquidityToRemove <= 0n}
+                  disabled={isApproving || isApproveConfirming || liquidityToRemove <= 0n}
                   className="w-full py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-xl font-bold text-white transition-all disabled:opacity-50 shadow-xl shadow-blue-600/20 active:scale-[0.98] text-sm"
                 >
-                  {isApproving ? "授权中..." : "授权 LP Token"}
+                  {isApproving || isApproveConfirming ? "授权中..." : "授权 LP Token"}
                 </button>
               ) : (
                 <button
