@@ -469,13 +469,18 @@ export default function SwapPage() {
                       最大
                     </button>
                     <span className="text-[10px] text-white font-bold">
-                      余额: {parseFloat(formattedBalance).toFixed(4)}
+                      余额: {parseFloat(formattedBalance || "0").toFixed(4)}
                     </span>
                   </div>
                 )}
                 {address && fromToken.isNative && bnbBalance && (
                   <span className="text-[10px] text-white font-bold">
                     余额: {parseFloat(formatEther(bnbBalance.value)).toFixed(4)}
+                  </span>
+                )}
+                {address && fromToken.isNative && !bnbBalance && (
+                  <span className="text-[10px] text-white font-bold">
+                    余额: 0.0000
                   </span>
                 )}
               </div>

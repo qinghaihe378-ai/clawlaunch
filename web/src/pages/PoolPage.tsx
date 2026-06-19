@@ -624,13 +624,18 @@ export default function PoolPage() {
           <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-all group">
             <div className="flex justify-between mb-1.5">
               <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">Token A</span>
-              {address && !poolTokenA.isNative && poolTokenABalance !== undefined && poolTokenABalance > 0n && (
+              {address && !poolTokenA.isNative && poolTokenABalance !== undefined && (
                 <button 
                   onClick={() => setAmountA(formatEther(poolTokenABalance))}
                   className="text-[10px] text-white font-bold hover:text-blue-300 transition-colors"
                 >
                   Balance: {parseFloat(formatEther(poolTokenABalance)).toFixed(4)}
                 </button>
+              )}
+              {address && !poolTokenA.isNative && poolTokenABalance === undefined && (
+                <span className="text-[10px] text-white font-bold">
+                  Balance: 0.0000
+                </span>
               )}
             </div>
             <div className="flex items-center justify-between gap-2">
@@ -780,13 +785,18 @@ export default function PoolPage() {
           <div className="relative bg-gradient-to-br from-gray-800/40 to-gray-900/40 rounded-xl p-3 border border-white/5 hover:border-white/10 transition-all group">
             <div className="flex justify-between mb-1.5">
               <span className="text-xs font-medium text-gray-300 uppercase tracking-wider">Token B</span>
-              {address && !poolTokenB.isNative && poolTokenBBalance !== undefined && poolTokenBBalance > 0n && (
+              {address && !poolTokenB.isNative && poolTokenBBalance !== undefined && (
                 <button 
                   onClick={() => setAmountB(formatEther(poolTokenBBalance))}
                   className="text-[10px] text-white font-bold hover:text-blue-300 transition-colors"
                 >
                   Balance: {parseFloat(formatEther(poolTokenBBalance)).toFixed(4)}
                 </button>
+              )}
+              {address && !poolTokenB.isNative && poolTokenBBalance === undefined && (
+                <span className="text-[10px] text-white font-bold">
+                  Balance: 0.0000
+                </span>
               )}
             </div>
             <div className="flex items-center justify-between gap-2">
