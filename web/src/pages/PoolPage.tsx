@@ -396,7 +396,17 @@ export default function PoolPage() {
     }
   })
 
-  // Calculate pool price from PancakeSwap quote
+  // Update amountB when quote changes (Auto-match value)
+  useEffect(() => {
+    if (poolAmountsOut && poolAmountsOut.length > 1) {
+      const formatted = formatEther(poolAmountsOut[1])
+      setAmountB(parseFloat(formatted).toFixed(6))
+    } else if (!amountA) {
+      setAmountB("")
+    }
+  }, [poolAmountsOut, amountA])
+
+  // Calculate pool price from PancakeSwap quote for display
   const poolPriceInfo = (() => {
     if (!poolAmountsOut || poolAmountsOut.length < 2 || !amountA || parseFloat(amountA) <= 0) return null
     
