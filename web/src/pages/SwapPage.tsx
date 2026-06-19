@@ -181,6 +181,13 @@ export default function SwapPage() {
     }
   })
 
+  // Log decimals query errors
+  useEffect(() => {
+    if (fromDecimalsError) {
+      console.warn(`[SwapPage] Failed to query decimals for ${fromToken.symbol}:`, fromDecimalsError.message)
+    }
+  }, [fromDecimalsError, fromToken.symbol])
+
   const { data: toDecimals, isLoading: isToDecimalsLoading, error: toDecimalsError } = useReadContract({
     address: isAddress(toToken.address) && !toToken.isNative ? toToken.address as Address : undefined,
     abi: ERC20_ABI,
@@ -193,6 +200,13 @@ export default function SwapPage() {
       staleTime: 2 * 60 * 1000,
     }
   })
+
+  // Log decimals query errors
+  useEffect(() => {
+    if (toDecimalsError) {
+      console.warn(`[SwapPage] Failed to query decimals for ${toToken.symbol}:`, toDecimalsError.message)
+    }
+  }, [toDecimalsError, toToken.symbol])
 
   // PancakeSwap-style: get decimals with fallback to 18
   const getFromDecimals = (): number => {
@@ -241,6 +255,13 @@ export default function SwapPage() {
       retry: 1,
     }
   })
+
+  // Log quote errors
+  useEffect(() => {
+    if (quoteError) {
+      console.warn(`[SwapPage] Failed to get quote for ${fromToken.symbol} → ${toToken.symbol}:`, quoteError.message)
+    }
+  }, [quoteError, fromToken.symbol, toToken.symbol])
 
   // Get pair address for liquidity info (sort addresses alphabetically)
   const sortedPairAddresses = [fromToken.address, toToken.address].sort((a, b) => a.toLowerCase() < b.toLowerCase() ? -1 : 1)
