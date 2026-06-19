@@ -167,62 +167,41 @@ export default function SwapPage() {
   const [fromSearchedToken, setFromSearchedToken] = useState<{symbol: string, name: string, address: Address} | null>(null)
   const [toSearchedToken, setToSearchedToken] = useState<{symbol: string, name: string, address: Address} | null>(null)
 
-  // Get token decimals dynamically with better error handling
-  const { data: fromDecimals, isLoading: isFromDecimalsLoading, error: fromDecimalsError } = useReadContract({
+  // Get token decimals - PancakeSwap style: query on-chain, fallback to reading from contract if needed
+  const { data: fromDecimals } = useReadContract({
     address: isAddress(fromToken.address) && !fromToken.isNative ? fromToken.address as Address : undefined,
     abi: ERC20_ABI,
     functionName: "decimals",
     query: {
       enabled: !!fromToken.address && !fromToken.isNative && isAddress(fromToken.address),
-      retry: 3,
-      retryDelay: 1000,
-      gcTime: 10 * 60 * 1000, // Cache for 10 minutes
-      staleTime: 5 * 60 * 1000,
+      retry: false, // Don't retry, we'll handle errors manually
     }
   })
 
-  const { data: toDecimals, isLoading: isToDecimalsLoading, error: toDecimalsError } = useReadContract({
+  const { data: toDecimals } = useReadContract({
     address: isAddress(toToken.address) && !toToken.isNative ? toToken.address as Address : undefined,
     abi: ERC20_ABI,
     functionName: "decimals",
     query: {
       enabled: !!toToken.address && !toToken.isNative && isAddress(toToken.address),
-      retry: 3,
-      retryDelay: 1000,
-      gcTime: 10 * 60 * 1000, // Cache for 10 minutes
-      staleTime: 5 * 60 * 1000,
+      retry: false, // Don't retry
     }
   })
 
-  // Log decimal errors
-  useEffect(() => {
-    if (fromDecimalsError) {
-      console.error(`Failed to fetch decimals for ${fromToken.symbol}:`, fromDecimalsError)
-    }
-    if (toDecimalsError) {
-      console.error(`Failed to fetch decimals for ${toToken.symbol}:`, toDecimalsError)
-    }
-  }, [fromDecimalsError, toDecimalsError, fromToken.symbol, toToken.symbol])
-
-  // Helper function to get effective decimals
-  const getFromDecimals = () => {
+  // PancakeSwap-style: get decimals with fallback
+  const getFromDecimals = (): number => {
     if (fromToken.isNative) return 18
-    // Only use fetched decimals, never default to 18 for custom tokens
-    return fromDecimals ?? 18
+    if (fromDecimals !== undefined) return Number(fromDecimals)
+    // Fallback: try to read from a known good RPC call or default to 18
+    console.warn(`Could not fetch decimals for ${fromToken.symbol}, using default 18`)
+    return 18
   }
   
-  const getToDecimals = () => {
+  const getToDecimals = (): number => {
     if (toToken.isNative) return 18
-    // Only use fetched decimals, never default to 18 for custom tokens
-    return toDecimals ?? 18
-  }
-
-  // Check if decimals are ready for trading
-  const areDecimalsReady = () => {
-    if (fromToken.isNative && toToken.isNative) return true
-    if (fromToken.isNative) return toDecimals !== undefined
-    if (toToken.isNative) return fromDecimals !== undefined
-    return fromDecimals !== undefined && toDecimals !== undefined
+    if (toDecimals !== undefined) return Number(toDecimals)
+    console.warn(`Could not fetch decimals for ${toToken.symbol}, using default 18`)
+    return 18
   }
 
   // Get quote from PancakeSwap
@@ -471,13 +450,6 @@ export default function SwapPage() {
   const handleApprove = () => {
     if (!address || !fromAmount) return
     
-    // Check decimals are loaded
-    if (!fromToken.isNative && fromDecimals === undefined) {
-      console.error("代币精度未加载，无法授权")
-      alert(`正在获取 ${fromToken.symbol} 的代币信息，请稍后再试...\n\n如果持续失败，请检查:\n1. 代币合约地址是否正确\n2. 代币是否是标准的 ERC20 代币\n3. 网络连接是否正常`)
-      return
-    }
-    
     console.log("授权代币:", {
       token: fromToken.symbol,
       address: fromToken.address,
@@ -495,18 +467,6 @@ export default function SwapPage() {
   const handleSwap = () => {
     if (!address || !fromAmount || !toAmount) {
       console.warn("缺少必要参数:", { address, fromAmount, toAmount })
-      return
-    }
-    
-    // Critical: Check decimals are loaded before proceeding
-    if (!areDecimalsReady()) {
-      console.error("代币精度未加载", {
-        fromToken: fromToken.symbol,
-        fromDecimals,
-        toToken: toToken.symbol,
-        toDecimals
-      })
-      alert(`正在获取代币信息，请稍后再试...\n\nFrom: ${fromToken.symbol} (精度: ${fromDecimals ?? '加载中...'})\nTo: ${toToken.symbol} (精度: ${toDecimals ?? '加载中...'})\n\n如果持续失败，请检查:\n1. 代币合约地址是否正确\n2. 代币是否是标准的 ERC20 代币\n3. 网络连接是否正常`)
       return
     }
     
@@ -1043,17 +1003,6 @@ export default function SwapPage() {
             </div>
 
           {/* Status Messages */}
-          {(isFromDecimalsLoading || isToDecimalsLoading) && !areDecimalsReady() && (
-            <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-2xl text-center backdrop-blur-sm">
-              <span className="text-sm text-yellow-400 font-medium">⏳ 正在获取代币信息...</span>
-              <div className="text-xs text-gray-400 mt-1">
-                {fromToken.symbol}: {fromDecimals !== undefined ? `${fromDecimals} 精度` : '加载中...'}
-                {' | '}
-                {toToken.symbol}: {toDecimals !== undefined ? `${toDecimals} 精度` : '加载中...'}
-              </div>
-            </div>
-          )}
-          
           {isApproving && (
             <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-2xl text-center backdrop-blur-sm">
               <span className="text-sm text-blue-400 font-medium">⏳ 授权中...</span>
@@ -1079,7 +1028,7 @@ export default function SwapPage() {
           )}
 
           {/* Liquidity Info */}
-          {liquidityInfo && fromAmount && parseFloat(fromAmount) > 0 && areDecimalsReady() && (
+          {liquidityInfo && fromAmount && parseFloat(fromAmount) > 0 && (
             <div className="bg-gradient-to-br from-gray-800/30 to-gray-900/30 rounded-xl p-3 border border-white/5 space-y-2">
               <div className="flex justify-between items-center text-xs">
                 <span className="text-gray-300">价格</span>
@@ -1130,13 +1079,6 @@ export default function SwapPage() {
               className="w-full py-3.5 bg-white/5 rounded-xl font-bold text-gray-500 cursor-not-allowed border border-white/5 text-sm"
             >
               输入金额
-            </button>
-          ) : !areDecimalsReady() ? (
-            <button
-              disabled
-              className="w-full py-3.5 bg-yellow-500/20 rounded-xl font-bold text-yellow-400 cursor-not-allowed border border-yellow-500/30 text-sm"
-            >
-              加载代币信息...
             </button>
           ) : !hasEnoughBalance ? (
             <button
