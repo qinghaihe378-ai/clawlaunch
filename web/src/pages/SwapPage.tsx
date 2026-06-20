@@ -240,6 +240,52 @@ export default function SwapPage() {
   const [toCustomAddress, setToCustomAddress] = useState("")
   const [fromSearchedToken, setFromSearchedToken] = useState<TokenOption | null>(null)
   const [toSearchedToken, setToSearchedToken] = useState<TokenOption | null>(null)
+  
+  // Custom tokens loaded from localStorage
+  const [customTokens, setCustomTokens] = useState<TokenOption[]>([])
+
+  // Load custom tokens on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('swap-custom-tokens')
+      if (stored) {
+        setCustomTokens(JSON.parse(stored))
+      }
+    } catch (e) {
+      console.error("Failed to load custom tokens:", e)
+    }
+  }, [])
+
+  // Save a custom token to localStorage
+  const saveCustomToken = (token: TokenOption) => {
+    try {
+      const stored = localStorage.getItem('swap-custom-tokens')
+      const tokens: TokenOption[] = stored ? JSON.parse(stored) : []
+      
+      // Check if it already exists in defaults or custom
+      const existsInDefaults = TOKENS.some(t => t.address.toLowerCase() === token.address.toLowerCase())
+      const existsInCustom = tokens.some(t => t.address.toLowerCase() === token.address.toLowerCase())
+      
+      if (!existsInDefaults && !existsInCustom) {
+        const newTokens = [...tokens, token]
+        setCustomTokens(newTokens)
+        localStorage.setItem('swap-custom-tokens', JSON.stringify(newTokens))
+      }
+    } catch (e) {
+      console.error("Failed to save custom token:", e)
+    }
+  }
+
+  // Remove a custom token
+  const removeCustomToken = (address: string) => {
+    try {
+      const newTokens = customTokens.filter(t => t.address.toLowerCase() !== address.toLowerCase())
+      setCustomTokens(newTokens)
+      localStorage.setItem('swap-custom-tokens', JSON.stringify(newTokens))
+    } catch (e) {
+      console.error("Failed to remove custom token:", e)
+    }
+  }
 
   const sanitizeAmountInput = (value: string, decimals: number): string => {
     if (decimals !== 0) return value
@@ -1027,6 +1073,7 @@ export default function SwapPage() {
                                 logo: `https://tokens.pancakeswap.finance/images/${fromSearchedToken.address}.png`,
                               }
                               setFromToken(newToken)
+                              saveCustomToken(newToken)
                               setShowFromSearch(false)
                               setFromAmount("")
                               setFromSearchedToken(null)
@@ -1061,54 +1108,70 @@ export default function SwapPage() {
                       </div>
 
                       <div className="space-y-2">
-                        {TOKENS.map(token => (
-                          <button
-                            key={token.symbol}
-                            onClick={() => {
-                              setFromToken(token)
-                              setShowFromSearch(false)
-                              setFromAmount("")
-                              setIsApproved(false)
-                            }}
-                            className="w-full px-4 py-3 rounded-xl text-left hover:bg-white/5 transition-colors flex items-center justify-between text-sm"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="relative w-8 h-8 flex-shrink-0">
-                                {token.logo ? (
-                                  <>
-                                    <img 
-                                      src={token.logo} 
-                                      alt={token.symbol} 
-                                      className="w-8 h-8 rounded-full"
-                                      onError={(e) => {
-                                        const target = e.target as HTMLImageElement
-                                        target.style.display = 'none'
-                                        const parent = target.parentElement
-                                        if (parent) {
-                                          const fallback = parent.querySelector('.token-fallback-list') as HTMLElement
-                                          if (fallback) fallback.style.display = 'flex'
-                                        }
-                                      }}
-                                    />
-                                    <div className="token-fallback-list w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold" style={{display: 'none'}}>
+                        {[...TOKENS, ...customTokens].map((token, index) => (
+                          <div key={token.symbol + index} className="relative group">
+                            <button
+                              onClick={() => {
+                                setFromToken(token)
+                                setShowFromSearch(false)
+                                setFromAmount("")
+                                setIsApproved(false)
+                              }}
+                              className="w-full px-4 py-3 rounded-xl text-left hover:bg-white/5 transition-colors flex items-center justify-between text-sm pr-12"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="relative w-8 h-8 flex-shrink-0">
+                                  {token.logo ? (
+                                    <>
+                                      <img 
+                                        src={token.logo} 
+                                        alt={token.symbol} 
+                                        className="w-8 h-8 rounded-full"
+                                        onError={(e) => {
+                                          const target = e.target as HTMLImageElement
+                                          target.style.display = 'none'
+                                          const parent = target.parentElement
+                                          if (parent) {
+                                            const fallback = parent.querySelector('.token-fallback-list') as HTMLElement
+                                            if (fallback) fallback.style.display = 'flex'
+                                          }
+                                        }}
+                                      />
+                                      <div className="token-fallback-list w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold" style={{display: 'none'}}>
+                                        {token.symbol[0]}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold">
                                       {token.symbol[0]}
                                     </div>
-                                  </>
-                                ) : (
-                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold">
-                                    {token.symbol[0]}
-                                  </div>
-                                )}
+                                  )}
+                                </div>
+                                <div>
+                                  <div className="font-semibold text-white">{token.symbol}</div>
+                                  <div className="text-xs text-gray-500">{token.isNative ? 'Native' : 'BEP-20'}</div>
+                                </div>
                               </div>
-                              <div>
-                                <div className="font-semibold text-white">{token.symbol}</div>
-                                <div className="text-xs text-gray-500">{token.isNative ? 'Native' : 'BEP-20'}</div>
-                              </div>
-                            </div>
-                            {fromToken.symbol === token.symbol && (
-                              <span className="text-blue-400 text-base">✓</span>
+                              {fromToken.symbol === token.symbol && (
+                                <span className="text-blue-400 text-base">✓</span>
+                              )}
+                            </button>
+                            {customTokens.some(t => t.address === token.address) && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  removeCustomToken(token.address)
+                                }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M3 6h18"></path>
+                                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                </svg>
+                              </button>
                             )}
-                          </button>
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -1244,6 +1307,7 @@ export default function SwapPage() {
                                 logo: `https://tokens.pancakeswap.finance/images/${toSearchedToken.address}.png`,
                               }
                               setToToken(newToken)
+                              saveCustomToken(newToken)
                               setShowToSearch(false)
                               setToSearchedToken(null)
                               setToCustomAddress("")
@@ -1274,52 +1338,68 @@ export default function SwapPage() {
                       </div>
 
                       <div className="space-y-2">
-                        {TOKENS.map(token => (
-                          <button
-                            key={token.symbol}
-                            onClick={() => {
-                              setToToken(token)
-                              setShowToSearch(false)
-                            }}
-                            className="w-full px-4 py-3 rounded-xl text-left hover:bg-white/5 transition-colors flex items-center justify-between text-sm"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="relative w-8 h-8 flex-shrink-0">
-                                {token.logo ? (
-                                  <>
-                                    <img 
-                                      src={token.logo} 
-                                      alt={token.symbol} 
-                                      className="w-8 h-8 rounded-full"
-                                      onError={(e) => {
-                                        const target = e.target as HTMLImageElement
-                                        target.style.display = 'none'
-                                        const parent = target.parentElement
-                                        if (parent) {
-                                          const fallback = parent.querySelector('.token-fallback-list') as HTMLElement
-                                          if (fallback) fallback.style.display = 'flex'
-                                        }
-                                      }}
-                                    />
-                                    <div className="token-fallback-list w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold" style={{display: 'none'}}>
+                        {[...TOKENS, ...customTokens].map((token, index) => (
+                          <div key={token.symbol + index} className="relative group">
+                            <button
+                              onClick={() => {
+                                setToToken(token)
+                                setShowToSearch(false)
+                              }}
+                              className="w-full px-4 py-3 rounded-xl text-left hover:bg-white/5 transition-colors flex items-center justify-between text-sm pr-12"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className="relative w-8 h-8 flex-shrink-0">
+                                  {token.logo ? (
+                                    <>
+                                      <img 
+                                        src={token.logo} 
+                                        alt={token.symbol} 
+                                        className="w-8 h-8 rounded-full"
+                                        onError={(e) => {
+                                          const target = e.target as HTMLImageElement
+                                          target.style.display = 'none'
+                                          const parent = target.parentElement
+                                          if (parent) {
+                                            const fallback = parent.querySelector('.token-fallback-list') as HTMLElement
+                                            if (fallback) fallback.style.display = 'flex'
+                                          }
+                                        }}
+                                      />
+                                      <div className="token-fallback-list w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold" style={{display: 'none'}}>
+                                        {token.symbol[0]}
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold">
                                       {token.symbol[0]}
                                     </div>
-                                  </>
-                                ) : (
-                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-xs font-bold">
-                                    {token.symbol[0]}
-                                  </div>
-                                )}
+                                  )}
+                                </div>
+                                <div>
+                                  <div className="font-semibold text-white">{token.symbol}</div>
+                                  <div className="text-xs text-gray-500">{token.isNative ? 'Native' : 'BEP-20'}</div>
+                                </div>
                               </div>
-                              <div>
-                                <div className="font-semibold text-white">{token.symbol}</div>
-                                <div className="text-xs text-gray-500">{token.isNative ? 'Native' : 'BEP-20'}</div>
-                              </div>
-                            </div>
-                            {toToken.symbol === token.symbol && (
-                              <span className="text-blue-400 text-base">✓</span>
+                              {toToken.symbol === token.symbol && (
+                                <span className="text-blue-400 text-base">✓</span>
+                              )}
+                            </button>
+                            {customTokens.some(t => t.address === token.address) && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  removeCustomToken(token.address)
+                                }}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M3 6h18"></path>
+                                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                                </svg>
+                              </button>
                             )}
-                          </button>
+                          </div>
                         ))}
                       </div>
                     </div>
