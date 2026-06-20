@@ -1363,12 +1363,6 @@ export default function SwapPage() {
                 </span>
               </div>
               <div className="flex justify-between items-center text-xs">
-                <span className="text-gray-300">流动性</span>
-                <span className="text-white font-medium">
-                  ${liquidityInfo.liquidity.toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
                 <span className="text-gray-300">滑点</span>
                 <button 
                   onClick={() => setShowSlippageModal(true)}
