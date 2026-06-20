@@ -230,6 +230,7 @@ export default function SwapPage() {
   const [fromAmount, setFromAmount] = useState("")
   const [toAmount, setToAmount] = useState("")
   const [slippage, setSlippage] = useState(0.5)
+  const [isAutoSlippage, setIsAutoSlippage] = useState(true)
   const [showSlippageModal, setShowSlippageModal] = useState(false)
   const [customSlippage, setCustomSlippage] = useState("")
   const [isApproved, setIsApproved] = useState(true)
@@ -897,7 +898,7 @@ export default function SwapPage() {
                   <circle cx="12" cy="12" r="3"/>
                   <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/>
                 </svg>
-                <span className="font-medium">{slippage}%</span>
+                <span className="font-medium">{isAutoSlippage ? '自动' : `${slippage}%`}</span>
               </button>
             </div>
           </div>
@@ -1368,7 +1369,7 @@ export default function SwapPage() {
                   onClick={() => setShowSlippageModal(true)}
                   className="text-blue-400 font-medium hover:text-blue-300 transition-colors"
                 >
-                  {slippage}%
+                  {isAutoSlippage ? '自动' : `${slippage}%`}
                 </button>
               </div>
             </div>
@@ -1454,16 +1455,31 @@ export default function SwapPage() {
               <h3 className="text-xl font-bold text-white mb-6">滑点设置</h3>
               
               {/* Preset Options */}
-              <div className="grid grid-cols-5 gap-3 mb-6">
-                {[0.1, 0.5, 1.0, 2.0, 5.0].map((value) => (
+              <div className="grid grid-cols-4 gap-3 mb-6">
+                <button
+                  onClick={() => {
+                    setIsAutoSlippage(true)
+                    setSlippage(0.5)
+                    setCustomSlippage('')
+                  }}
+                  className={`py-3 rounded-xl font-semibold transition-all ${
+                    isAutoSlippage
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white/5 text-gray-400 hover:bg-white/10'
+                  }`}
+                >
+                  自动
+                </button>
+                {[0.1, 0.5, 1.0].map((value) => (
                   <button
                     key={value}
                     onClick={() => {
+                      setIsAutoSlippage(false)
                       setSlippage(value)
                       setCustomSlippage('')
                     }}
                     className={`py-3 rounded-xl font-semibold transition-all ${
-                      slippage === value && !customSlippage
+                      !isAutoSlippage && slippage === value && !customSlippage
                         ? 'bg-blue-600 text-white'
                         : 'bg-white/5 text-gray-400 hover:bg-white/10'
                     }`}
@@ -1479,10 +1495,11 @@ export default function SwapPage() {
                 <div className="relative">
                   <input
                     type="number"
-                    value={customSlippage !== '' ? customSlippage : (slippage === 0.1 || slippage === 0.5 || slippage === 1.0 || slippage === 2.0 || slippage === 5.0 ? '' : slippage.toString())}
+                    value={customSlippage !== '' ? customSlippage : (!isAutoSlippage && ![0.1, 0.5, 1.0].includes(slippage) ? slippage.toString() : '')}
                     onChange={(e) => {
                       const inputVal = e.target.value
                       setCustomSlippage(inputVal)
+                      setIsAutoSlippage(false)
                       const val = parseFloat(inputVal)
                       if (!isNaN(val) && val > 0 && val <= 50) {
                         setSlippage(val)
