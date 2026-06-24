@@ -10,6 +10,7 @@ interface IERC20 {
     function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
     function transfer(address recipient, uint256 amount) external returns (bool);
     function approve(address spender, uint256 amount) external returns (bool);
+    function balanceOf(address account) external view returns (uint256);
 }
 
 interface IPancakeRouter02 {
@@ -39,11 +40,26 @@ contract ClawLaunchRouterProxy {
     uint256 public defaultReferrerShare = 5000; // 三个月后 50%
     uint256 public launchTime;                  // 合约上线/启动的时间戳
 
+    // 防重入锁
+    uint256 private constant _NOT_ENTERED = 1;
+    uint256 private constant _ENTERED = 2;
+    uint256 private _status;
+
+    modifier nonReentrant() {
+        require(_status != _ENTERED, "ReentrancyGuard: reentrant call");
+        _status = _ENTERED;
+        _;
+        _status = _NOT_ENTERED;
+    }
+
     constructor(address _router, address _feeReceiver) {
+        require(_router != address(0), "Invalid router address");
+        require(_feeReceiver != address(0), "Invalid fee receiver");
         owner = msg.sender;
         pancakeRouter = IPancakeRouter02(_router);
         feeReceiver = _feeReceiver;
         launchTime = block.timestamp; // 记录合约部署那一刻的时间
+        _status = _NOT_ENTERED;
     }
 
     modifier onlyOwner() {
@@ -60,8 +76,9 @@ contract ClawLaunchRouterProxy {
         address to,
         uint deadline,
         address referrer // <-- 前端多传一个邀请人地址
-    ) external payable {
+    ) external payable nonReentrant {
         require(msg.value > 0, "Zero amount");
+        require(path.length >= 2, "Invalid path");
 
         // 1. 计算手续费
         uint256 fee = (msg.value * feeRate) / 10000;
@@ -86,19 +103,25 @@ contract ClawLaunchRouterProxy {
         address to,
         uint deadline,
         address referrer
-    ) external {
+    ) external nonReentrant {
+        require(amountIn > 0, "Zero amount");
+        require(path.length >= 2, "Invalid path");
+
         // 1. 把用户的代币收到这个代理合约里
-        IERC20(path[0]).transferFrom(msg.sender, address(this), amountIn);
+        // 注意：如果是通缩代币，实际收到的可能少于 amountIn，需要查余额差值
+        uint256 balanceBefore = IERC20(path[0]).balanceOf(address(this));
+        require(IERC20(path[0]).transferFrom(msg.sender, address(this), amountIn), "Transfer failed");
+        uint256 actualAmountIn = IERC20(path[0]).balanceOf(address(this)) - balanceBefore;
 
         // 2. 计算手续费
-        uint256 fee = (amountIn * feeRate) / 10000;
-        uint256 swapAmount = amountIn - fee;
+        uint256 fee = (actualAmountIn * feeRate) / 10000;
+        uint256 swapAmount = actualAmountIn - fee;
 
         // 3. 实时分发代币手续费
         _distributeTokenFee(path[0], fee, referrer);
 
         // 4. 授权给 Pancake Router 并去卖币
-        IERC20(path[0]).approve(address(pancakeRouter), swapAmount);
+        _approveTokenIfNeeded(path[0], address(pancakeRouter), swapAmount);
         pancakeRouter.swapExactTokensForETHSupportingFeeOnTransferTokens(
             swapAmount, amountOutMin, path, to, deadline
         );
@@ -114,18 +137,32 @@ contract ClawLaunchRouterProxy {
         address to,
         uint deadline,
         address referrer
-    ) external {
-        IERC20(path[0]).transferFrom(msg.sender, address(this), amountIn);
+    ) external nonReentrant {
+        require(amountIn > 0, "Zero amount");
+        require(path.length >= 2, "Invalid path");
 
-        uint256 fee = (amountIn * feeRate) / 10000;
-        uint256 swapAmount = amountIn - fee;
+        uint256 balanceBefore = IERC20(path[0]).balanceOf(address(this));
+        require(IERC20(path[0]).transferFrom(msg.sender, address(this), amountIn), "Transfer failed");
+        uint256 actualAmountIn = IERC20(path[0]).balanceOf(address(this)) - balanceBefore;
+
+        uint256 fee = (actualAmountIn * feeRate) / 10000;
+        uint256 swapAmount = actualAmountIn - fee;
 
         _distributeTokenFee(path[0], fee, referrer);
 
-        IERC20(path[0]).approve(address(pancakeRouter), swapAmount);
+        _approveTokenIfNeeded(path[0], address(pancakeRouter), swapAmount);
         pancakeRouter.swapExactTokensForTokensSupportingFeeOnTransferTokens(
             swapAmount, amountOutMin, path, to, deadline
         );
+    }
+
+    // ==========================================
+    // 内部方法：安全授权
+    // ==========================================
+    function _approveTokenIfNeeded(address token, address spender, uint256 amount) internal {
+        // 防止有些代币（如 USDT）要求 allowance 必须先清零才能重新授权
+        IERC20(token).approve(spender, 0);
+        require(IERC20(token).approve(spender, amount), "Approve failed");
     }
 
     // ==========================================
@@ -150,11 +187,17 @@ contract ClawLaunchRouterProxy {
             uint256 currentShare = getCurrentReferrerShare();
             uint256 refFee = (fee * currentShare) / 10000;
             uint256 adminFee = fee - refFee;
-            payable(referrer).transfer(refFee);       // 打给邀请人
-            payable(feeReceiver).transfer(adminFee);  // 剩下的打给官方
+            
+            // 使用 call 进行 ETH 转账，防止接收方是合约时消耗超 Gas 失败
+            (bool successRef, ) = payable(referrer).call{value: refFee}("");
+            if(!successRef) adminFee += refFee; // 如果转给推荐人失败，钱归官方，不中断交易
+
+            (bool successAdmin, ) = payable(feeReceiver).call{value: adminFee}("");
+            require(successAdmin, "Admin ETH transfer failed");
         } else {
             // 没邀请人，全归官方
-            payable(feeReceiver).transfer(fee);
+            (bool successAdmin, ) = payable(feeReceiver).call{value: fee}("");
+            require(successAdmin, "Admin ETH transfer failed");
         }
     }
 
@@ -164,10 +207,14 @@ contract ClawLaunchRouterProxy {
             uint256 currentShare = getCurrentReferrerShare();
             uint256 refFee = (fee * currentShare) / 10000;
             uint256 adminFee = fee - refFee;
-            IERC20(token).transfer(referrer, refFee);
-            IERC20(token).transfer(feeReceiver, adminFee);
+            
+            // 尝试转给推荐人，如果不检查返回值直接 require，可能会因为恶意推荐人地址导致交易回滚
+            bool successRef = IERC20(token).transfer(referrer, refFee);
+            if(!successRef) adminFee += refFee; // 失败则转给官方
+
+            require(IERC20(token).transfer(feeReceiver, adminFee), "Admin token transfer failed");
         } else {
-            IERC20(token).transfer(feeReceiver, fee);
+            require(IERC20(token).transfer(feeReceiver, fee), "Admin token transfer failed");
         }
     }
 
@@ -190,7 +237,20 @@ contract ClawLaunchRouterProxy {
     }
 
     function setFeeReceiver(address _receiver) external onlyOwner {
+        require(_receiver != address(0), "Invalid address");
         feeReceiver = _receiver;
+    }
+
+    // ==========================================
+    // 紧急救援：如果有人误打钱进合约，管理员可以提走
+    // ==========================================
+    function emergencyWithdrawETH() external onlyOwner {
+        payable(owner).transfer(address(this).balance);
+    }
+
+    function emergencyWithdrawToken(address token) external onlyOwner {
+        uint256 bal = IERC20(token).balanceOf(address(this));
+        IERC20(token).transfer(owner, bal);
     }
 
     // 允许合约接收 BNB
