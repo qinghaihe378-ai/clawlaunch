@@ -1,10 +1,30 @@
 import { Suspense, lazy, useEffect, useRef, useState } from "react"
 import { createPortal } from "react-dom"
 import { BrowserRouter, Link, Route, Routes } from "react-router-dom"
-import { useAccount, useConnect, useDisconnect } from "wagmi"
+import { useAccount, useConnect, useDisconnect, useReadContract } from "wagmi"
+import { formatEther, type Address } from "viem"
 import { bsc } from "wagmi/chains"
 
 import { getPreferredInjectedProvider } from "./embeddedWalletBridge"
+
+const PROXY_ADDRESS = "0x20CB246EF14e2b0e0a843666C1DDD5443F730f70" as Address
+
+const PROXY_ABI = [
+  {
+    "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "name": "inviteCount",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{ "internalType": "address", "name": "", "type": "address" }],
+    "name": "totalBNBEarned",
+    "outputs": [{ "internalType": "uint256", "name": "", "type": "uint256" }],
+    "stateMutability": "view",
+    "type": "function"
+  }
+] as const
 
 const SwapPage = lazy(() => import("./pages/SwapPage"))
 const PoolPage = lazy(() => import("./pages/PoolPage"))
@@ -35,6 +55,28 @@ function Header() {
   const triedAuto = useRef(false)
   const [injectedReady, setInjectedReady] = useState(false)
   const [noProviderHint, setNoProviderHint] = useState<string | null>(null)
+
+  const { data: inviteCount } = useReadContract({
+    address: PROXY_ADDRESS,
+    abi: PROXY_ABI,
+    functionName: "inviteCount",
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address,
+      refetchInterval: 10000,
+    }
+  })
+
+  const { data: totalBNBEarned } = useReadContract({
+    address: PROXY_ADDRESS,
+    abi: PROXY_ABI,
+    functionName: "totalBNBEarned",
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address,
+      refetchInterval: 10000,
+    }
+  })
 
   const isInIframe = (() => {
     try {
@@ -181,14 +223,29 @@ function Header() {
                 </div>
 
                 {/* 收益面板 */}
-                <div className="bg-gradient-to-br from-blue-900/20 to-blue-900/5 border border-blue-500/20 rounded-xl p-5 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
-                  <h3 className="text-sm font-medium text-blue-400 mb-3 relative z-10">我的返佣收入</h3>
-                  <div className="flex items-baseline gap-2 mb-3 relative z-10">
-                    <span className="text-3xl font-bold text-white tracking-tight">实时到账</span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-gradient-to-br from-purple-900/20 to-purple-900/5 border border-purple-500/20 rounded-xl p-4 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl -mr-8 -mt-8"></div>
+                    <h3 className="text-xs font-medium text-purple-400 mb-1 relative z-10">已邀请人数</h3>
+                    <div className="flex items-baseline gap-1 relative z-10">
+                      <span className="text-2xl font-bold text-white tracking-tight">{inviteCount !== undefined ? Number(inviteCount) : 0}</span>
+                      <span className="text-xs text-purple-300">人</span>
+                    </div>
                   </div>
-                  <p className="text-xs text-neutral-400 leading-relaxed relative z-10">
-                    采用<strong className="text-neutral-200">纯链上完全去中心化架构</strong>，推荐返佣会在被邀请人交易成功的瞬间直接打入您的钱包，无需手动提现，绝对安全。
+                  <div className="bg-gradient-to-br from-blue-900/20 to-blue-900/5 border border-blue-500/20 rounded-xl p-4 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl -mr-8 -mt-8"></div>
+                    <h3 className="text-xs font-medium text-blue-400 mb-1 relative z-10">已赚取佣金</h3>
+                    <div className="flex items-baseline gap-1 relative z-10">
+                      <span className="text-2xl font-bold text-white tracking-tight">{totalBNBEarned ? parseFloat(formatEther(totalBNBEarned)).toFixed(4) : "0.0000"}</span>
+                      <span className="text-xs text-blue-300">BNB</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 提现说明 */}
+                <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                  <p className="text-xs text-neutral-400 text-center">
+                    💡 采用纯链上架构，佣金在被邀请人交易的瞬间已<strong className="text-green-400">自动打入您的钱包</strong>，无需手动提现。
                   </p>
                 </div>
 
