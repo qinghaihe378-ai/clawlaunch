@@ -31,6 +31,7 @@ function Header() {
   const { connect, connectors, isPending, error: connectError } = useConnect()
   const { disconnect } = useDisconnect()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [showReferralModal, setShowReferralModal] = useState(false)
   const triedAuto = useRef(false)
   const [injectedReady, setInjectedReady] = useState(false)
   const [noProviderHint, setNoProviderHint] = useState<string | null>(null)
@@ -63,6 +64,22 @@ function Header() {
               </button>
             </div>
             <div className="mt-4 grid gap-3">
+              <button
+                type="button"
+                className="glass-card rounded-2xl px-5 py-4 text-base font-semibold text-neutral-100 hover:bg-white/10 transition-all duration-200 flex items-center gap-3 w-full text-left"
+                onClick={() => {
+                  setMenuOpen(false)
+                  setShowReferralModal(true)
+                }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+                <span>邀请返佣</span>
+              </button>
               <Link
                 to="/swap"
                 className="glass-card rounded-2xl px-5 py-4 text-base font-semibold text-neutral-100 hover:bg-white/10 transition-all duration-200 flex items-center gap-3"
@@ -103,6 +120,91 @@ function Header() {
                 官方X
               </a>
             </div>
+          </div>
+        </div>,
+        document.body
+      )
+    : null
+
+  const referralModal = showReferralModal
+    ? createPortal(
+        <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowReferralModal(false)} role="presentation">
+          <div
+            className="w-full max-w-md rounded-3xl border border-white/10 bg-gradient-to-b from-neutral-900 to-black p-6 shadow-2xl relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="absolute top-4 right-4 p-2 text-neutral-400 hover:text-white transition-colors"
+              onClick={() => setShowReferralModal(false)}
+            >
+              ✕
+            </button>
+            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+              <span className="text-blue-500">💎</span> 邀请返佣
+            </h2>
+
+            {!address ? (
+              <div className="text-center py-8">
+                <p className="text-neutral-400 text-sm mb-4">请先连接钱包获取您的专属邀请链接</p>
+                <button
+                  onClick={() => {
+                    setShowReferralModal(false)
+                    connectInjected()
+                  }}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl text-white font-bold transition-all shadow-lg shadow-blue-600/20"
+                >
+                  连接钱包
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* 邀请链接 */}
+                <div>
+                  <label className="text-sm font-medium text-neutral-400 mb-2 block">我的邀请链接</label>
+                  <div className="flex items-center gap-2 bg-black/50 border border-white/10 p-3 rounded-xl">
+                    <input 
+                      type="text" 
+                      readOnly 
+                      value={`${window.location.origin}${window.location.pathname}?ref=${address}`}
+                      className="bg-transparent text-white text-sm w-full outline-none"
+                    />
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?ref=${address}`)
+                        alert('复制成功！')
+                      }}
+                      className="text-blue-400 hover:text-blue-300 text-sm font-bold whitespace-nowrap px-3 py-1 bg-blue-500/10 rounded-lg transition-colors"
+                    >
+                      复制
+                    </button>
+                  </div>
+                </div>
+
+                {/* 收益面板 */}
+                <div className="bg-gradient-to-br from-blue-900/20 to-blue-900/5 border border-blue-500/20 rounded-xl p-5 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -mr-10 -mt-10"></div>
+                  <h3 className="text-sm font-medium text-blue-400 mb-3 relative z-10">我的返佣收入</h3>
+                  <div className="flex items-baseline gap-2 mb-3 relative z-10">
+                    <span className="text-3xl font-bold text-white tracking-tight">实时到账</span>
+                  </div>
+                  <p className="text-xs text-neutral-400 leading-relaxed relative z-10">
+                    采用<strong className="text-neutral-200">纯链上完全去中心化架构</strong>，推荐返佣会在被邀请人交易成功的瞬间直接打入您的钱包，无需手动提现，绝对安全。
+                  </p>
+                </div>
+
+                {/* 规则说明 */}
+                <div className="space-y-3 bg-white/5 rounded-xl p-4 border border-white/5">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-neutral-400">当前返佣比例</span>
+                    <span className="text-green-400 font-bold bg-green-400/10 px-2 py-0.5 rounded">80%</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-neutral-400">有效期限</span>
+                    <span className="text-white font-medium">永久有效</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>,
         document.body
@@ -251,6 +353,7 @@ function Header() {
         <div className="mx-auto max-w-md px-4 pb-2 text-xs text-neutral-400">{noProviderHint}</div>
       )}
       {mobileMenu}
+      {referralModal}
     </div>
   )
 }
