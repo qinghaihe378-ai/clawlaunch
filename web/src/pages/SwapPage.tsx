@@ -146,11 +146,57 @@ const ERC20_ABI = [
 ] as const
 
 const ROUTER_ADDRESS = "0x10ED43C718714eb63d5aA57B78B54704E256024E" as Address
+const PROXY_ADDRESS = "0x07254755cfadB786053f83c88D5FbC7174A4Fa06" as Address
 const FACTORY_ADDRESS = "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73" as Address
 const WBNB = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c" as Address
 const USDC = "0x8AC76a51cc950d9822D68b83Fe1Ad97B32Cd580d" as Address
 const LIVE_REFETCH_MS = 4000
 const PRICE_REFETCH_MS = 8000
+
+// Proxy Router ABI
+const PROXY_ABI = [
+  {
+    name: "swapExactETHForTokens",
+    type: "function",
+    stateMutability: "payable",
+    inputs: [
+      { name: "amountOutMin", type: "uint256" },
+      { name: "path", type: "address[]" },
+      { name: "to", type: "address" },
+      { name: "deadline", type: "uint256" },
+      { name: "referrer", type: "address" }
+    ],
+    outputs: []
+  },
+  {
+    name: "swapExactTokensForETH",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "amountIn", type: "uint256" },
+      { name: "amountOutMin", type: "uint256" },
+      { name: "path", type: "address[]" },
+      { name: "to", type: "address" },
+      { name: "deadline", type: "uint256" },
+      { name: "referrer", type: "address" }
+    ],
+    outputs: []
+  },
+  {
+    name: "swapExactTokensForTokens",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "amountIn", type: "uint256" },
+      { name: "amountOutMin", type: "uint256" },
+      { name: "path", type: "address[]" },
+      { name: "to", type: "address" },
+      { name: "deadline", type: "uint256" },
+      { name: "referrer", type: "address" }
+    ],
+    outputs: []
+  }
+] as const
 
 // PancakeSwap V2 Factory ABI
 const FACTORY_ABI = [
@@ -241,6 +287,24 @@ export default function SwapPage() {
   const [toCustomAddress, setToCustomAddress] = useState("")
   const [fromSearchedToken, setFromSearchedToken] = useState<TokenOption | null>(null)
   const [toSearchedToken, setToSearchedToken] = useState<TokenOption | null>(null)
+  
+  // Referrer logic
+  const [referrer, setReferrer] = useState<Address>("0x0000000000000000000000000000000000000000")
+
+  useEffect(() => {
+    // Check URL
+    const params = new URLSearchParams(window.location.search)
+    const ref = params.get('ref')
+    if (ref && isAddress(ref)) {
+      localStorage.setItem('swap-referrer', ref)
+      setReferrer(ref as Address)
+    } else {
+      const stored = localStorage.getItem('swap-referrer')
+      if (stored && isAddress(stored)) {
+        setReferrer(stored as Address)
+      }
+    }
+  }, [])
   
   // Custom tokens loaded from localStorage
   const [customTokens, setCustomTokens] = useState<TokenOption[]>([])
@@ -437,11 +501,12 @@ export default function SwapPage() {
       const results = await Promise.all(
         candidatePaths.map(async (path) => {
           try {
+            const amountInAfterFee = debouncedParsedFromAmount * BigInt(9960) / BigInt(10000) // 扣除 0.4% 手续费
             const result = await publicClient.readContract({
               address: ROUTER_ADDRESS,
               abi: ROUTER_ABI,
               functionName: "getAmountsOut",
-              args: [debouncedParsedFromAmount, path],
+              args: [amountInAfterFee > 0n ? amountInAfterFee : debouncedParsedFromAmount, path],
             })
             return {
               path,
@@ -540,7 +605,7 @@ export default function SwapPage() {
     address: isAddress(fromToken.address) ? fromToken.address as Address : undefined,
     abi: ERC20_ABI,
     functionName: "allowance",
-    args: address && fromAmount ? [address, ROUTER_ADDRESS] : undefined,
+    args: address && fromAmount ? [address, PROXY_ADDRESS] : undefined,
     query: {
       enabled: !!address && !fromToken.isNative && !!fromAmount && isAddress(fromToken.address),
       refetchInterval: LIVE_REFETCH_MS,
@@ -810,7 +875,7 @@ export default function SwapPage() {
       address: fromToken.address,
       abi: ERC20_ABI,
       functionName: "approve",
-      args: [ROUTER_ADDRESS, maxApproval],
+      args: [PROXY_ADDRESS, maxApproval],
     })
   }
 
@@ -877,27 +942,27 @@ export default function SwapPage() {
       const path = selectedPath
       if (fromToken.isNative) {
         swap({
-          address: ROUTER_ADDRESS,
-          abi: ROUTER_ABI,
-          functionName: "swapExactETHForTokensSupportingFeeOnTransferTokens",
-          args: [amountOutMin, path, address, deadline],
+          address: PROXY_ADDRESS,
+          abi: PROXY_ABI,
+          functionName: "swapExactETHForTokens",
+          args: [amountOutMin, path, address, deadline, referrer],
           value: amountIn,
           gas: BigInt(600000), // Higher gas for tax tokens
         })
       } else if (toToken.isNative) {
         swap({
-          address: ROUTER_ADDRESS,
-          abi: ROUTER_ABI,
-          functionName: "swapExactTokensForETHSupportingFeeOnTransferTokens",
-          args: [amountIn, amountOutMin, path, address, deadline],
+          address: PROXY_ADDRESS,
+          abi: PROXY_ABI,
+          functionName: "swapExactTokensForETH",
+          args: [amountIn, amountOutMin, path, address, deadline, referrer],
           gas: BigInt(800000), // Much higher gas for selling tax tokens
         })
       } else {
         swap({
-          address: ROUTER_ADDRESS,
-          abi: ROUTER_ABI,
-          functionName: "swapExactTokensForTokensSupportingFeeOnTransferTokens",
-          args: [amountIn, amountOutMin, path, address, deadline],
+          address: PROXY_ADDRESS,
+          abi: PROXY_ABI,
+          functionName: "swapExactTokensForTokens",
+          args: [amountIn, amountOutMin, path, address, deadline, referrer],
           gas: BigInt(800000), // Much higher gas for tax tokens
         })
       }
