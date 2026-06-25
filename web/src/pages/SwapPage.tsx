@@ -259,9 +259,59 @@ function useDebouncedValue<T>(value: T, delay: number) {
   return debouncedValue
 }
 
+function getReadableSwapError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error ?? "")
+  const lowerMessage = message.toLowerCase()
+
+  if (
+    lowerMessage.includes("user denied") ||
+    lowerMessage.includes("user rejected") ||
+    lowerMessage.includes("reject request") ||
+    lowerMessage.includes("rejected the request") ||
+    lowerMessage.includes("denied transaction signature") ||
+    lowerMessage.includes("transaction was rejected")
+  ) {
+    return "你已取消交易"
+  }
+
+  if (lowerMessage.includes("insufficient_output_amount")) {
+    return "最小到账数量过高，请调大滑点后重试"
+  }
+
+  if (
+    lowerMessage.includes("insufficient funds") ||
+    lowerMessage.includes("exceeds balance")
+  ) {
+    return "余额不足，无法完成交易"
+  }
+
+  if (
+    lowerMessage.includes("gas required exceeds allowance") ||
+    lowerMessage.includes("intrinsic gas too low") ||
+    lowerMessage.includes("out of gas")
+  ) {
+    return "Gas 不足，请稍后重试"
+  }
+
+  if (
+    lowerMessage.includes("network error") ||
+    lowerMessage.includes("failed to fetch") ||
+    lowerMessage.includes("timeout")
+  ) {
+    return "网络异常，请稍后重试"
+  }
+
+  if (lowerMessage.includes("chain disconnected")) {
+    return "钱包已断开连接，请重新连接后再试"
+  }
+
+  return "交易失败，请稍后重试"
+}
+
 const TOKENS: TokenOption[] = [
   { symbol: "BNB", address: WBNB, isNative: true, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c.png" },
   { symbol: "小猫币", name: "小猫币", address: "0x054d5BD23635689576E8F1Fb7120A85365411111" as Address, decimals: 18, logo: "/xiaomaobi.png" },
+  { symbol: "杀零猫", name: "杀零猫", address: "0x7c1df8f49c1579ce8c03486edfe506a7f9150000" as Address, decimals: 0, logo: "/shalingmao.png" },
   { symbol: "USDT", address: "0x55d398326f99059fF775485246999027B3197955" as Address, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x55d398326f99059fF775485246999027B3197955.png" },
   { symbol: "BUSD", address: "0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56" as Address, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56.png" },
   { symbol: "CAKE", address: "0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82" as Address, decimals: 18, logo: "https://tokens.pancakeswap.finance/images/0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82.png" },
@@ -439,6 +489,8 @@ export default function SwapPage() {
   )
   const [routeQuote, setRouteQuote] = useState<RouteQuote | null>(null)
   const [quoteStatus, setQuoteStatus] = useState<QuoteStatus>("idle")
+  const [swapRuntimeError, setSwapRuntimeError] = useState<string | null>(null)
+  const [trackedTxHash, setTrackedTxHash] = useState<`0x${string}` | undefined>(undefined)
 
   const candidatePaths = useMemo(() => {
     const fromAddress = fromToken.address
@@ -825,26 +877,86 @@ export default function SwapPage() {
   })
   
   // Execute swap
-  const { writeContract: swap, isPending: isSwapping, data: txHash } = useWriteContract()
+  const { writeContract: swap, isPending: isSwapping, data: txHash, error: swapWriteError, isError: isSwapWriteError, reset: resetSwapState } = useWriteContract()
   const { isLoading: isConfirming, isSuccess: isConfirmed, data: receipt, isError: isTxError, error: txError } = useWaitForTransactionReceipt({
-    hash: txHash,
+    hash: trackedTxHash,
     timeout: 60000, // 60 second timeout
   })
+
+  useEffect(() => {
+    if (!txHash) return
+    setTrackedTxHash(txHash)
+  }, [txHash])
+
+  useEffect(() => {
+    if (!trackedTxHash || !publicClient) return
+
+    let cancelled = false
+    let timer: number | undefined
+    const startedAt = Date.now()
+    const currentTxHash = trackedTxHash
+
+    const verifyBroadcast = async () => {
+      const [tx, txReceipt] = await Promise.all([
+        publicClient.getTransaction({ hash: currentTxHash }).catch(() => null),
+        publicClient.getTransactionReceipt({ hash: currentTxHash }).catch(() => null),
+      ])
+
+      if (cancelled) return
+
+      if (tx || txReceipt) {
+        return
+      }
+
+      if (Date.now() - startedAt >= 20000) {
+        setSwapRuntimeError("钱包返回了交易哈希，但 BSC 链上未发现该交易。已自动结束等待，请重新发起交易。")
+        setTrackedTxHash(undefined)
+        resetSwapState()
+        return
+      }
+
+      timer = window.setTimeout(() => {
+        void verifyBroadcast()
+      }, 3000)
+    }
+
+    timer = window.setTimeout(() => {
+      void verifyBroadcast()
+    }, 3000)
+
+    return () => {
+      cancelled = true
+      if (timer) window.clearTimeout(timer)
+    }
+  }, [publicClient, trackedTxHash])
+
+  useEffect(() => {
+    if (!isSwapWriteError) return
+    setSwapRuntimeError(getReadableSwapError(swapWriteError))
+    setTrackedTxHash(undefined)
+    resetSwapState()
+  }, [chainId, fromAmount, fromToken.symbol, isSwapWriteError, resetSwapState, swapWriteError, toAmount, toToken.symbol])
 
   // Check transaction status and show error if reverted
   useEffect(() => {
     if (receipt && receipt.status === 'reverted') {
+      setSwapRuntimeError("链上交易已回退，请检查滑点、代币税率或交易路径")
+      setTrackedTxHash(undefined)
+      resetSwapState()
       console.error('❌ 交易失败 (Reverted)')
-      console.error('交易哈希:', txHash)
+      console.error('交易哈希:', trackedTxHash)
     }
-  }, [fromToken.address, fromToken.symbol, receipt, toToken.address, toToken.symbol, txHash])
+  }, [fromToken.address, fromToken.symbol, receipt, resetSwapState, toToken.address, toToken.symbol, trackedTxHash])
 
   // Check for transaction errors or timeout
   useEffect(() => {
     if (isTxError) {
+      setSwapRuntimeError(getReadableSwapError(txError))
+      setTrackedTxHash(undefined)
+      resetSwapState()
       console.error('❌ 交易错误:', txError)
     }
-  }, [allowance, balance, fromAmount, fromToken, isTxError, toAmount, toToken, txError])
+  }, [allowance, balance, fromAmount, fromToken, isTxError, resetSwapState, toAmount, toToken, trackedTxHash, txError])
 
   // Refetch allowance after approval transaction is confirmed
   useEffect(() => {
@@ -856,13 +968,16 @@ export default function SwapPage() {
   // Refetch balance after swap transaction is confirmed
   useEffect(() => {
     if (isConfirmed && !isSwapping) {
+      setSwapRuntimeError(null)
+      setTrackedTxHash(undefined)
+      resetSwapState()
       if (fromToken.isNative) {
         refetchBnbBalance()
       } else {
         refetchBalance()
       }
     }
-  }, [isConfirmed, isSwapping, fromToken.isNative, refetchBalance, refetchBnbBalance])
+  }, [isConfirmed, isSwapping, fromToken.isNative, refetchBalance, refetchBnbBalance, resetSwapState])
 
   const handleApprove = () => {
     if (!address || !fromAmount) return
@@ -879,7 +994,7 @@ export default function SwapPage() {
     })
   }
 
-  const handleSwap = () => {
+  const handleSwap = async () => {
     if (!address || !fromAmount || !toAmount) {
       return
     }
@@ -919,6 +1034,7 @@ export default function SwapPage() {
     }
     
     try {
+      setSwapRuntimeError(null)
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 1200)
       const amountIn = amountInValue
       
@@ -940,32 +1056,66 @@ export default function SwapPage() {
       // For sell (token -> BNB): [tokenAddress, WBNB]
       // For buy (BNB -> token): [WBNB, tokenAddress]
       const path = selectedPath
-      if (fromToken.isNative) {
-        swap({
-          address: PROXY_ADDRESS,
-          abi: PROXY_ABI,
-          functionName: "swapExactETHForTokens",
-          args: [amountOutMin, path, address, deadline, referrer],
-          value: amountIn,
-          gas: BigInt(600000), // Higher gas for tax tokens
-        })
-      } else if (toToken.isNative) {
-        swap({
-          address: PROXY_ADDRESS,
-          abi: PROXY_ABI,
-          functionName: "swapExactTokensForETH",
-          args: [amountIn, amountOutMin, path, address, deadline, referrer],
-          gas: BigInt(800000), // Much higher gas for selling tax tokens
-        })
-      } else {
-        swap({
-          address: PROXY_ADDRESS,
-          abi: PROXY_ABI,
-          functionName: "swapExactTokensForTokens",
-          args: [amountIn, amountOutMin, path, address, deadline, referrer],
-          gas: BigInt(800000), // Much higher gas for tax tokens
-        })
+
+      const functionName = fromToken.isNative
+        ? "swapExactETHForTokens"
+        : toToken.isNative
+          ? "swapExactTokensForETH"
+          : "swapExactTokensForTokens"
+
+      let finalAmountOutMin = amountOutMin
+      let finalArgs = fromToken.isNative
+        ? [finalAmountOutMin, path, address, deadline, referrer] as const
+        : [amountIn, finalAmountOutMin, path, address, deadline, referrer] as const
+
+      let estimatedGas: bigint | undefined
+
+      if (publicClient) {
+        const simulateSwap = async (candidateArgs: typeof finalArgs) =>
+          publicClient.simulateContract({
+            account: address,
+            address: PROXY_ADDRESS,
+            abi: PROXY_ABI,
+            functionName,
+            args: candidateArgs,
+            value: fromToken.isNative ? amountIn : undefined,
+          })
+
+        try {
+          const simulation = await simulateSwap(finalArgs)
+          estimatedGas = simulation.request.gas
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error)
+          const canRelaxMinOut =
+            !fromToken.isNative &&
+            finalAmountOutMin > 0n &&
+            message.includes("INSUFFICIENT_OUTPUT_AMOUNT")
+
+          if (!canRelaxMinOut) {
+            setSwapRuntimeError(getReadableSwapError(error))
+            return
+          }
+
+          finalAmountOutMin = 0n
+          finalArgs = fromToken.isNative
+            ? [finalAmountOutMin, path, address, deadline, referrer] as const
+            : [amountIn, finalAmountOutMin, path, address, deadline, referrer] as const
+
+          const relaxedSimulation = await simulateSwap(finalArgs)
+          estimatedGas = relaxedSimulation.request.gas
+        }
       }
+
+      const gasWithBuffer = estimatedGas ? (estimatedGas * 12n) / 10n : undefined
+
+      swap({
+        address: PROXY_ADDRESS,
+        abi: PROXY_ABI,
+        functionName,
+        args: finalArgs,
+        value: fromToken.isNative ? amountIn : undefined,
+        gas: gasWithBuffer,
+      })
     } catch (error) {
       console.error("Swap 调用失败:", error)
     }
@@ -1518,6 +1668,12 @@ export default function SwapPage() {
                   {isAutoSlippage ? '自动' : `${slippage}%`}
                 </button>
               </div>
+            </div>
+          )}
+
+          {swapRuntimeError && (
+            <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
+              <p className="text-red-300 text-xs leading-relaxed">{swapRuntimeError}</p>
             </div>
           )}
 

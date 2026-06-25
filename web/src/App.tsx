@@ -46,6 +46,13 @@ function getInjectedProvider(): any {
   return getPreferredInjectedProvider(window)
 }
 
+function getPreferredConnector(connectors: readonly any[], provider: any): any {
+  if (provider?.isMetaMask) {
+    return connectors.find((c) => c.id === "io.metamask") ?? connectors.find((c) => c.id === "injected")
+  }
+  return connectors.find((c) => c.id === "injected")
+}
+
 function Header() {
   const { address } = useAccount()
   const { connect, connectors, isPending, error: connectError } = useConnect()
@@ -291,10 +298,9 @@ function Header() {
     if (!injectedReady) return
     if (triedAuto.current) return
 
-    const injectedConnector = connectors.find((c) => c.id === "injected")
-    if (!injectedConnector) return
-
     const p = getInjectedProvider()
+    const injectedConnector = getPreferredConnector(connectors, p)
+    if (!injectedConnector) return
     if (!p?.request) return
 
     triedAuto.current = true
@@ -312,7 +318,7 @@ function Header() {
     const p = getInjectedProvider()
     if (!p?.on || !p?.removeListener) return
 
-    const injectedConnector = connectors.find((c) => c.id === "injected")
+    const injectedConnector = getPreferredConnector(connectors, p)
     if (!injectedConnector) return
 
     const handleAccountsChanged = (accounts: unknown) => {
@@ -342,10 +348,9 @@ function Header() {
   }
 
   const connectInjected = () => {
-    const injectedConnector = connectors.find((c) => c.id === "injected")
-    if (!injectedConnector) return
-
     const p = getInjectedProvider()
+    const injectedConnector = getPreferredConnector(connectors, p)
+    if (!injectedConnector) return
     if (p?.request) {
       setNoProviderHint(null)
       void p
